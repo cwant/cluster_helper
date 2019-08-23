@@ -1,0 +1,23 @@
+AllCops:
+  DisplayCopNames: true
+  DisplayStyleGuide: true
+  Exclude:
+    - 'tmp/**/*'
+    - 'vendor/**/*'
+  ExtraDetails: true
+
+Style/Documentation:
+  Enabled: false
+
+Layout/EmptyLinesAroundClassBody:
+  # TODO: on upgrade, want: EnforcedStyle: empty_lines_except_namespace
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Metrics/ClassLength:
+  Max: 200
+
+Metrics/MethodLength:
+  Max: 20
