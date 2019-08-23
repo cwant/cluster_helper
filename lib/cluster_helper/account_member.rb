@@ -1,4 +1,8 @@
+require_relative 'concerns/like_a_user'
+
 class ClusterHelper::AccountMember
+
+  include LikeAUser
 
   attr_reader :username, :account, :norm_shares, :effective_usage
 
