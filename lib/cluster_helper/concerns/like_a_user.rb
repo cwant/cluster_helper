@@ -8,6 +8,6 @@ module LikeAUser
   end
 
   def jobs
-    @jobs ||= ClusterHelper::Job.from_user(self)
+    @jobs ||= ClusterHelper::Job.where(user: self)
   end
 end

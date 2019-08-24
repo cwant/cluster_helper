@@ -17,31 +17,42 @@ class ClusterHelper::Job
                        "' -h -u %<user>s").freeze
   attr_reader :id, :priority, :state, :user, :account
 
-  def self.from_username(username, user: nil)
-    cmd = format(USER_JOBS_COMMAND, user: username)
+  class << self
 
-    # TODO: handle errors
-    lines = IO.popen(cmd).readlines
-    data = lines.map { |line| line.strip.split('|') }
-                .map do |arr|
-      out = { user: user || ClusterHelper::User(username) }
+    def where(username: nil, user: nil)
+      return [] if username.nil? && user.nil?
+      username = user.username if username.nil?
+      user ||= ClusterHelper::User.new(username)
+      cmd = format(USER_JOBS_COMMAND, user: username)
+
+      accounts_cache = {}
+      # TODO: handle errors
+      lines = IO.popen(cmd).readlines
+
+      lines.map { |line| line_to_job(line, user, accounts_cache) }
+    end
+
+    private
+
+    def line_to_job(line, user, accounts_cache)
+      arr = line.strip.split('|')
+      out = { user: user }
       id = nil
       SQUEUE_FIELDS.each_with_index do |f, i|
         if f[:name] == :id
           id = arr[i]
         elsif f[:name] == :account
-          out[:account] = ClusterHelper::Account.new(arr[i])
+          account = accounts_cache[arr[i]] ||
+                    ClusterHelper::Account.new(arr[i])
+          accounts_cache[arr[i]] ||= account
+          out[:account] = account
         else
           out[f[:name]] = arr[i]
         end
       end
-      [id, new(id, **out)]
+      new(id, **out)
     end
-    Hash[data]
-  end
 
-  def self.from_user(user)
-    from_username(user.username, user: user)
   end
 
   def initialize(id, priority: nil,
