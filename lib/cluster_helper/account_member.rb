@@ -13,4 +13,12 @@ class ClusterHelper::AccountMember
     @norm_shares = norm_shares
     @effective_usage = effective_usage
   end
+
+  def to_h
+    out = super
+    out[:norm_shares] = norm_shares
+    out[:effective_usage] = effective_usage
+    out
+  end
+
 end
