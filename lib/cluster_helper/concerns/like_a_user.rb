@@ -1,6 +1,6 @@
 module LikeAUser
   def accounts
-    @accounts ||= ClusterHelper::Account.from_user(self)
+    @accounts ||= ClusterHelper::Account.where(user: self)
   end
 
   def account_names
