@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require 'cluster_helper/version'
-require 'cluster_helper/user'
-require 'cluster_helper/account'
-require 'cluster_helper/account_member'
-require 'cluster_helper/job'
+require_relative 'cluster_helper/version'
+require_relative 'cluster_helper/user'
+require_relative 'cluster_helper/account'
+require_relative 'cluster_helper/account_member'
+require_relative 'cluster_helper/job'
 
 module ClusterHelper
 end
