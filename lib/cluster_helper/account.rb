@@ -1,9 +1,30 @@
 class ClusterHelper::Account
 
+  USER_ACCOUNTS_COMMAND =
+    'sacctmgr show user %<user>s withassoc -P -n format=account,share'.freeze
+
   ACCOUNT_COMMAND = 'sshare -l -A %<account>s -a '\
                     '--format User,NormShares,EffectvUsage -n -P'.freeze
 
   attr_reader :name
+
+  def self.from_username(username)
+    cmd = format(USER_ACCOUNTS_COMMAND, user: username)
+
+    # TODO: handle errors
+    lines = IO.popen(cmd).readlines
+    names = lines.map { |line| line.strip.split('|') }
+                 .reject { |arr| arr[1] == '0' }
+                 .map(&:first)
+    # TODO: update syntax for Ruby >= 2.1
+    Hash[names.map do |name|
+           [name, ClusterHelper::Account.new(name)]
+         end]
+  end
+
+  def self.from_user(user)
+    from_username(user.username)
+  end
 
   def initialize(name)
     @name = name
@@ -32,7 +53,7 @@ class ClusterHelper::Account
 
   private
 
-  def load_data # rubocop:disable Metrics/AbcSize
+  def load_data
     data = account_data
     group_data = data.find { |h| h[:username].nil? || h[:username].empty? }
     if group_data
