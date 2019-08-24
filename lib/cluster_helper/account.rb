@@ -8,22 +8,21 @@ class ClusterHelper::Account
 
   attr_reader :name
 
-  def self.from_username(username)
-    cmd = format(USER_ACCOUNTS_COMMAND, user: username)
+  class << self
 
-    # TODO: handle errors
-    lines = IO.popen(cmd).readlines
-    names = lines.map { |line| line.strip.split('|') }
-                 .reject { |arr| arr[1] == '0' }
-                 .map(&:first)
-    # TODO: update syntax for Ruby >= 2.1
-    Hash[names.map do |name|
-           [name, ClusterHelper::Account.new(name)]
-         end]
-  end
+    def where(username: nil, user: nil)
+      return [] if username.nil? && user.nil?
+      username = user.username if username.nil?
+      cmd = format(USER_ACCOUNTS_COMMAND, user: username)
 
-  def self.from_user(user)
-    from_username(user.username)
+      # TODO: handle errors
+      lines = IO.popen(cmd).readlines
+      lines.map { |line| line.strip.split('|') }
+           .reject { |arr| arr[1] == '0' }
+           .map(&:first)
+           .map { |name| ClusterHelper::Account.new(name) }
+    end
+
   end
 
   def initialize(name)
