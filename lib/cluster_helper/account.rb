@@ -59,17 +59,15 @@ class ClusterHelper::Account
       @norm_shares = group_data[:norm_shares]
       @effective_usage = group_data[:effective_usage]
     end
-    # TODO: update syntax for Ruby >= 2.1
-    @members = Hash[
+
+    @members =
       data.select { |h| !h[:username].empty? && h[:norm_shares] > 0.0 }
           .map do |h|
-        [h[:username],
-         ClusterHelper::AccountMember.new(h[:username],
-                                          self,
-                                          norm_shares: h[:norm_shares],
-                                          effective_usage: h[:effective_usage])]
+        ClusterHelper::AccountMember.new(h[:username],
+                                         self,
+                                         norm_shares: h[:norm_shares],
+                                         effective_usage: h[:effective_usage])
       end
-    ]
   end
 
   def account_data
