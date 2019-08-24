@@ -50,6 +50,18 @@ class ClusterHelper::Account
     @norm_shares
   end
 
+  def to_h
+    out = { name: name }
+    out[:members] = @members if @members
+    out[:norm_share] = @norm_shares if @norm_shares
+    out[:effective_usage] = @effective_usage if @effective_usage
+    out
+  end
+
+  def to_json(options = {})
+    to_h.to_json(options)
+  end
+
   private
 
   def load_data

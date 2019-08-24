@@ -15,7 +15,7 @@ class ClusterHelper::Job
   USER_JOBS_COMMAND = ("squeue -o '" +
                        SQUEUE_FIELDS.map { |f| '%' + f[:code] }.join('|') +
                        "' -h -u %<user>s").freeze
-  attr_reader :id, :priority, :state, :user, :account
+  attr_reader :id, :priority, :state, :user, :account, :name
 
   class << self
 
@@ -64,6 +64,18 @@ class ClusterHelper::Job
     @account = account
     @state = state
     @user = user
+  end
+
+  def to_h
+    { id: id,
+      priority: priority,
+      name: name,
+      state: state,
+      user: user }
+  end
+
+  def to_json(options = {})
+    to_h.to_json(options)
   end
 
 end
