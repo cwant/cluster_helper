@@ -71,11 +71,14 @@ class ClusterHelper::Job
       priority: priority,
       name: name,
       state: state,
-      user: user }
+      user: user.username }
   end
 
   def to_json(options = {})
     to_h.to_json(options)
   end
 
+  def to_yaml(options = {})
+    to_h.to_yaml(options)
+  end
 end

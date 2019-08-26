@@ -1,0 +1,111 @@
+#!/usr/bin/env ruby
+
+require_relative '../lib/cluster_helper'
+require 'readline'
+
+class JobConsole < ClusterHelper::BaseReportProgram
+
+  COMMANDS = ['account', 'accounts',
+              'job', 'jobs',
+              'user', 'help',
+              'quit', 'exit'].freeze
+
+  config_option :user
+  config_option :json
+  config_option :compact_json
+  config_option :yaml
+
+  private
+
+  def print_help
+    puts 'Some things to try:'
+    puts '  jobs'
+    puts '  job 1112222333'
+    puts '  jobs running (or pending)'
+    puts '  accounts'
+    puts '  account members'
+    puts '  account def-howdy'
+    puts '  help'
+    puts 'Press Ctrl-D to exit.'
+  end
+  alias help print_help
+
+  def main
+    print_help
+
+    bnd = binding()
+    while (input = Readline.readline(prompt, true))
+      begin
+        input = sanitize_input(input)
+        break unless input
+
+        bnd.eval input
+      rescue UnknownOption
+        puts "Bad option (type 'help' for assistance)"
+      rescue NameError
+        puts "Bad command (type 'help' for assistance)"
+      rescue StandardError => e
+        puts "Error (#{e.class}) (type 'help' for assistance)"
+      end
+    end
+    puts ''
+  end
+
+  def sanitize_input(input)
+    parts = input.split(' ')
+    parts.each_with_index.map do |value, index|
+      if index == 0
+        raise NameError(value) unless COMMANDS.include?(value)
+        if value == 'user'
+          'switch_user'
+        elsif ['quit', 'exit'].include?(value)
+          return nil
+        else
+          value
+        end
+      else
+        "'#{value}'"
+      end
+    end.join(' ')
+  end
+
+  def prompt
+    "job_console(#{user.username})> "
+  end
+
+  def job(options = nil)
+    if ['all', nil].include?(options)
+      return render('jobs' => user.jobs.map(&:to_h))
+    end
+    job = user.jobs.find { |j| j.id == options }
+    return render('job' => job.to_h) if job
+    raise UnknownOption
+  end
+  alias jobs job
+
+  def account(options = nil)
+    out = ''
+    if ['all', nil].include?(options)
+      out = user.accounts.map(&:name)
+    elsif options == 'members'
+      out = { 'accounts' =>
+              user.accounts.map do |account|
+                { 'name' => account.name,
+                  'members' => account.members.map(&:username) }
+              end }
+      render out
+    else
+      raise UnknownOption
+    end
+
+    render out
+  end
+  alias accounts account
+
+  def switch_user(username = nil)
+    @user = ClusterHelper::User.new(username || @options[:user])
+  end
+
+end
+
+JobConsole.new.run if $PROGRAM_NAME == __FILE__

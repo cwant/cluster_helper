@@ -27,3 +27,12 @@ Metrics/ParameterLists:
 
 Metrics/AbcSize:
   Enabled: false
+
+Style/NumericPredicate:
+  Enabled: false
+
+Style/MethodCallWithoutArgsParentheses:
+  Enabled: false
+
+Style/WordArray:
+  Enabled: false
