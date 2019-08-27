@@ -14,8 +14,12 @@ Gem::Specification.new do |spec|
 
   spec.required_ruby_version = '>= 2.0.0'
 
-  # Need very specific versions to work with Ruby 2.0
   spec.add_development_dependency 'pry'
-  spec.add_development_dependency 'parallel', '= 1.13.0'
-  spec.add_development_dependency 'rubocop', '= 0.50.0'
+  if RUBY_VERSION < '2.1'
+    # Need very specific versions to work with Ruby 2.0
+    spec.add_development_dependency 'parallel', '= 1.13.0'
+    spec.add_development_dependency 'rubocop', '= 0.50.0'
+  else
+    spec.add_development_dependency 'rubocop'
+  end
 end
