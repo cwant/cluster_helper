@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require_relative '../lib/cluster_helper'
+require_relative '../lib/cluster_helper/monkey_patch/hash_stringify_keys'
 require 'readline'
 
 class JobConsole < ClusterHelper::BaseReportProgram
@@ -75,10 +76,10 @@ class JobConsole < ClusterHelper::BaseReportProgram
 
   def job(options = nil)
     if ['all', nil].include?(options)
-      return render('jobs' => user.jobs.map(&:to_h))
+      return render('jobs' => user.jobs.map { |job| job.to_h.stringify_keys })
     end
     job = user.jobs.find { |j| j.id == options }
-    return render('job' => job.to_h) if job
+    return render('job' => job.to_h.stringify_keys) if job
     raise UnknownOption
   end
   alias jobs job
