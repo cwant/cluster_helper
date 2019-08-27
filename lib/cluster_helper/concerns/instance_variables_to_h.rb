@@ -5,6 +5,6 @@ module InstanceVariablesToH
            key = var.to_s.gsub(/^@/, '').to_sym
            key, value = yield(key, value) if block_given?
            [key, value]
-         end]
+         end.compact]
   end
 end

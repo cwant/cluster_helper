@@ -85,21 +85,20 @@ class JobConsole < ClusterHelper::BaseReportProgram
   alias jobs job
 
   def account(options = nil)
-    out = ''
-    if ['all', nil].include?(options)
-      out = user.accounts.map(&:name)
-    elsif options == 'members'
-      out = { 'accounts' =>
-              user.accounts.map do |account|
-                { 'name' => account.name,
-                  'members' => account.members.map(&:username) }
-              end }
-      render out
-    else
-      raise UnknownOption
+    return render user.accounts.map(&:name) if ['all', nil].include?(options)
+    if options == 'members'
+      return render('accounts' =>
+                    user.accounts.map do |account|
+                      { 'name' => account.name,
+                        'members' => account.members.map(&:username) }
+                    end)
+    end
+    accounts = user.accounts.select { |j| j.name.start_with?(options) }
+    if accounts
+      return render('accounts' => accounts.map { |a| a.to_h.stringify_keys })
     end
 
-    render out
+    raise UnknownOption
   end
   alias accounts account
 

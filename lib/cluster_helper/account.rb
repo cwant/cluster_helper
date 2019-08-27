@@ -1,4 +1,8 @@
+require_relative 'concerns/instance_variables_to_h'
+
 class ClusterHelper::Account
+
+  include InstanceVariablesToH
 
   USER_ACCOUNTS_COMMAND =
     'sacctmgr show user %<user>s withassoc -P -n format=account,share'.freeze
@@ -51,15 +55,19 @@ class ClusterHelper::Account
   end
 
   def to_h
-    out = { name: name }
-    out[:members] = @members if @members
-    out[:norm_share] = @norm_shares if @norm_shares
-    out[:effective_usage] = @effective_usage if @effective_usage
-    out
+    load_data
+    instance_variables_to_h do |key, value|
+      value = value.map(&:username) if key == :members
+      [key, value]
+    end
   end
 
   def to_json(options = {})
     to_h.to_json(options)
+  end
+
+  def to_yaml(options = {})
+    to_h.to_yaml(options)
   end
 
   private
