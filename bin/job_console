@@ -9,14 +9,22 @@ class JobConsole < ClusterHelper::BaseReportProgram
   COMMANDS = ['account', 'accounts',
               'job', 'jobs',
               'user', 'help',
-              'quit', 'exit'].freeze
+              'quit', 'exit', 'q'].freeze
 
   config_option :user
   config_option :json
   config_option :compact_json
   config_option :yaml
 
+  config_option :command
+
   private
+
+  def options_command(opts)
+    opts.on('-c', '--command COMMAND', 'Run command and exit') do |v|
+      @options[:command] = v
+    end
+  end
 
   def print_help
     puts 'Some things to try:'
@@ -32,15 +40,23 @@ class JobConsole < ClusterHelper::BaseReportProgram
   alias help print_help
 
   def main
+    bnd = binding()
+    if @options[:command]
+      input_to_commands(@options[:command]).each do |command|
+        break unless command
+        bnd.eval command
+      end
+      return
+    end
+
     print_help
 
-    bnd = binding()
     while (input = Readline.readline(prompt, true))
       begin
-        input = sanitize_input(input)
-        break unless input
-
-        bnd.eval input
+        input_to_commands(input).each do |command|
+          return unless command
+          bnd.eval command
+        end
       rescue UnknownOption
         puts "Bad option (type 'help' for assistance)"
       rescue NameError
@@ -52,6 +68,10 @@ class JobConsole < ClusterHelper::BaseReportProgram
     puts ''
   end
 
+  def input_to_commands(input)
+    input.strip.split(';').map { |i| sanitize_input(i) }
+  end
+
   def sanitize_input(input)
     parts = input.split(' ')
     parts.each_with_index.map do |value, index|
@@ -59,7 +79,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
         raise NameError(value) unless COMMANDS.include?(value)
         if value == 'user'
           'switch_user'
-        elsif ['quit', 'exit'].include?(value)
+        elsif ['quit', 'exit', 'q'].include?(value)
           return nil
         else
           value
