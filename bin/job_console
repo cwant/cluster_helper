@@ -40,7 +40,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
   end
   alias help print_help
 
-  def main # rubocop:disable Metrics/MethodLength
+  def main
     bnd = binding()
     if @options[:command]
       input_to_commands(@options[:command]).each do |command|
@@ -134,7 +134,14 @@ class JobConsole < ClusterHelper::BaseReportProgram
   def process_account_command(accounts, *args)
     subcommand = args.first
 
-    return render accounts.map(&:name) if ['all', nil].include?(subcommand)
+    if ['name', 'names'].include?(subcommand)
+      return render('accounts' => accounts.map(&:name))
+    end
+
+    if ['all', nil].include?(subcommand)
+      return render('accounts' => accounts.map { |a| a.to_h.stringify_keys })
+    end
+
     if subcommand == 'members'
       return render('accounts' =>
                     accounts.map do |account|
@@ -142,10 +149,15 @@ class JobConsole < ClusterHelper::BaseReportProgram
                         'members' => account.members.map(&:username) }
                     end)
     end
-    accounts = accounts.select { |j| j.name.start_with?(subcommand) }
-    if accounts
-      return render('accounts' => accounts.map { |a| a.to_h.stringify_keys })
+
+    if ['job', 'jobs'].include?(subcommand)
+      # TODO: try to make this handle multiple accounts
+      jobs = ClusterHelper::Job.where(account: accounts.first)
+      return process_job_command(jobs, *args[1..-1])
     end
+
+    accounts = accounts.select { |j| j.name.start_with?(subcommand) }
+    return process_account_command(accounts, *args[1..-1]) if accounts
 
     raise UnknownOption
   end
