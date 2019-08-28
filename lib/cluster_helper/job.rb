@@ -90,4 +90,13 @@ class ClusterHelper::Job
   def to_yaml(options = {})
     to_h.stringify_keys.to_yaml(options)
   end
+
+  def running?
+    state == 'RUNNING'
+  end
+
+  def pending?
+    state == 'PENDING'
+  end
+
 end

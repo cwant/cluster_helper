@@ -29,17 +29,18 @@ class JobConsole < ClusterHelper::BaseReportProgram
   def print_help
     puts 'Some things to try:'
     puts '  jobs'
+    puts '  jobs count'
     puts '  job 1112222333'
     puts '  jobs running (or pending)'
     puts '  accounts'
     puts '  account members'
-    puts '  account def-howdy'
+    puts '  account def-howdy (or just match start of string)'
     puts '  help'
     puts 'Press Ctrl-D to exit.'
   end
   alias help print_help
 
-  def main
+  def main # rubocop:disable Metrics/MethodLength
     bnd = binding()
     if @options[:command]
       input_to_commands(@options[:command]).each do |command|
@@ -54,7 +55,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
     while (input = Readline.readline(prompt, true))
       begin
         input_to_commands(input).each do |command|
-          return unless command
+          return nil unless command
           bnd.eval command
         end
       rescue UnknownOption
@@ -74,35 +75,51 @@ class JobConsole < ClusterHelper::BaseReportProgram
 
   def sanitize_input(input)
     parts = input.split(' ')
-    parts.each_with_index.map do |value, index|
-      if index == 0
-        raise NameError(value) unless COMMANDS.include?(value)
-        if value == 'user'
-          'switch_user'
-        elsif ['quit', 'exit', 'q'].include?(value)
-          return nil
-        else
-          value
-        end
-      else
-        "'#{value}'"
-      end
-    end.join(' ')
+    method = parts[0].strip
+    raise NameError(method) unless COMMANDS.include?(method)
+    if method == 'user'
+      method = 'switch_user'
+    elsif ['quit', 'exit', 'q'].include?(method)
+      return nil
+    end
+
+    args = parts[1..-1].map { |value| "'#{value}'" }
+
+    "#{method} #{args.join(', ')}"
   end
 
   def prompt
     "job_console(#{user.username})> "
   end
 
-  def job(options = nil)
-    if ['all', nil].include?(options)
-      return render('jobs' => user.jobs.map { |job| job.to_h.stringify_keys })
+  def job(*args)
+    process_job_command(user.jobs, *args)
+  end
+  alias jobs job
+
+  def process_job_command(jobs, *args)
+    subcommand = args.first
+
+    if ['all', nil].include?(subcommand)
+      return render('jobs' => jobs.map { |job| job.to_h.stringify_keys })
     end
-    job = user.jobs.find { |j| j.id == options }
+
+    return render jobs.count if subcommand == 'count'
+
+    if subcommand == 'running'
+      jobs = jobs.select(&:running?)
+      return process_job_command(jobs, *args[1..-1])
+    end
+
+    if subcommand == 'pending'
+      jobs = jobs.select(&:pending?)
+      return process_job_command(jobs, *args[1..-1])
+    end
+
+    job = jobs.find { |j| j.id == subcommand }
     return render('job' => job.to_h.stringify_keys) if job
     raise UnknownOption
   end
-  alias jobs job
 
   def account(options = nil)
     return render user.accounts.map(&:name) if ['all', nil].include?(options)
