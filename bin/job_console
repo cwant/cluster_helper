@@ -6,10 +6,15 @@ require 'readline'
 
 class JobConsole < ClusterHelper::BaseReportProgram
 
-  COMMANDS = ['account', 'accounts',
-              'job', 'jobs',
-              'user', 'help',
-              'quit', 'exit', 'q'].freeze
+  ACCOUNT_COMMANDS = ['account', 'accounts', 'a'].freeze
+  JOB_COMMANDS = ['job', 'jobs', 'j'].freeze
+  QUIT_COMMANDS = ['quit', 'exit', 'q'].freeze
+  HELP_COMMANDS = ['help', 'h', '?'].freeze
+  COMMANDS = (ACCOUNT_COMMANDS +
+              JOB_COMMANDS +
+              QUIT_COMMANDS +
+              HELP_COMMANDS +
+              ['user']).freeze
 
   config_option :user
   config_option :json
@@ -73,13 +78,19 @@ class JobConsole < ClusterHelper::BaseReportProgram
     input.strip.split(';').map { |i| sanitize_input(i) }
   end
 
-  def sanitize_input(input)
+  def sanitize_input(input) # rubocop:disable Metrics/PerceivedComplexity
     parts = input.split(' ')
-    method = parts[0].strip
+    method = parts[0].strip.downcase
     raise NameError(method) unless COMMANDS.include?(method)
     if method == 'user'
       method = 'switch_user'
-    elsif ['quit', 'exit', 'q'].include?(method)
+    elsif JOB_COMMANDS.include?(method)
+      method = 'job'
+    elsif ACCOUNT_COMMANDS.include?(method)
+      method = 'account'
+    elsif HELP_COMMANDS.include?(method)
+      method = 'help'
+    elsif QUIT_COMMANDS.include?(method)
       return nil
     end
 
@@ -116,7 +127,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
       return process_job_command(jobs, *args[1..-1])
     end
 
-    if ['account', 'accounts'].include?(subcommand)
+    if ACCOUNT_COMMANDS.include?(subcommand.downcase)
       accounts = jobs.map(&:account).uniq
       return process_account_command(accounts, *args[1..-1])
     end
@@ -150,7 +161,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
                     end)
     end
 
-    if ['job', 'jobs'].include?(subcommand)
+    if JOB_COMMANDS.include?(subcommand.downcase)
       # TODO: try to make this handle multiple accounts
       jobs = ClusterHelper::Job.where(account: accounts.first)
       return process_job_command(jobs, *args[1..-1])
