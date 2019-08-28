@@ -28,6 +28,9 @@ Metrics/ParameterLists:
 Metrics/AbcSize:
   Enabled: false
 
+Metrics/CyclomaticComplexity:
+  Max: 10
+
 Style/NumericPredicate:
   Enabled: false
 
