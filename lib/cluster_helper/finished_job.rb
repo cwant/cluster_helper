@@ -1,9 +1,4 @@
-require_relative 'concerns/instance_variables_to_h'
-require_relative 'monkey_patch/hash_stringify_keys'
-
 class ClusterHelper::FinishedJob < ClusterHelper::Job
-
-  include InstanceVariablesToH
 
   SACCT_FIELDS = {
     id: 'JobID',
@@ -23,6 +18,7 @@ class ClusterHelper::FinishedJob < ClusterHelper::Job
     number_of_nodes: 'NNodes',
     number_of_tasks: 'NTasks'
   }.freeze
+
   USER_JOBS_COMMAND = ('sacct -u %<user>s -P -n '\
                        '-S %<after>s --format ' +
                        SACCT_FIELDS.values.join(',')).freeze
@@ -31,6 +27,8 @@ class ClusterHelper::FinishedJob < ClusterHelper::Job
                           SACCT_FIELDS.values.join(',')).freeze
 
   attr_reader(*SACCT_FIELDS.keys)
+  attr_reader :memory_efficiency_percent, :cpu_efficiency_percent
+  attr_reader :core_walltime_seconds
 
   class << self
 
@@ -98,16 +96,6 @@ class ClusterHelper::FinishedJob < ClusterHelper::Job
       value
     end
 
-    def line_to_hash(line)
-      arr = line.strip.split('|')
-      hash = {}
-      slurm_fields.each_with_index do |key, i|
-        hash[key] = process_value_by_key(arr[i], key)
-      end
-
-      hash
-    end
-
     def memory_to_bytes(str)
       m = str.match(/^[\d]*/)
       return 0 unless m
@@ -146,36 +134,15 @@ class ClusterHelper::FinishedJob < ClusterHelper::Job
       days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds + milli
     end
 
-    def to_datetime(value)
-      return nil if value == 'Unknown'
-      DateTime.parse(value)
-    end
-
     def hash_is_job?(hash)
       hash[:id] !~ /\./
-    end
-
-    def hash_to_job(hash, user_cache, account_cache)
-      username = hash[:user]
-      user = user_cache[username] ||
-             ClusterHelper::User.new(username)
-      user_cache[username] ||= user
-      hash[:user] = user
-
-      account_name = hash[:account]
-      account = account_cache[account_name] ||
-                ClusterHelper::Account.new(account_name)
-      account_cache[account_name] ||= account
-      hash[:account] = account
-
-      new(hash)
     end
 
   end
 
   def add_steps(steps)
-    @memory_efficiency = nil
-    @cpu_efficiency = nil
+    @memory_efficiency_percent = nil
+    @cpu_efficiency_percent = nil
     max_memory_bytes = 0
     total_cpu_seconds = 0
     @number_of_tasks = 0
@@ -189,9 +156,55 @@ class ClusterHelper::FinishedJob < ClusterHelper::Job
     end
     max_memory_bytes *= @number_of_tasks
     @maximum_memory_used_bytes = max_memory_bytes
-    @memory_efficiency = (100.0 * max_memory_bytes) / memory_requested_bytes
-    core_walltime_seconds = walltime_seconds * allocated_cpus
-    @cpu_efficiency = (100.0 * total_cpu_seconds) / core_walltime_seconds
+    @memory_efficiency_percent =
+      (100.0 * max_memory_bytes) / memory_requested_bytes
+    @core_walltime_seconds = walltime_seconds * allocated_cpus
+    @cpu_efficiency_percent =
+      (100.0 * total_cpu_seconds) / @core_walltime_seconds
+  end
+
+  def memory_requested_megabytes
+    memory_requested_bytes / 1024.0**2
+  end
+
+  def maximum_memory_used_megabytes
+    maximum_memory_used_bytes / 1024.0**2
+  end
+
+  def to_h
+    out = basic_fields_to_h
+
+    out[:exit_code] = exit_code
+
+    out[:events] = events_to_h
+    out[:memory] = memory_to_h
+    out[:cpu] = cpu_to_h
+
+    out
+  end
+
+  private
+
+  def events_to_h
+    methods_to_h([:submit_time,
+                  :start_time,
+                  :end_time]) do |key, value|
+      value = value.strftime('%FT%T') if value
+      [key, value]
+    end
+  end
+
+  def memory_to_h
+    methods_to_h([:memory_requested_megabytes,
+                  :maximum_memory_used_megabytes,
+                  :memory_efficiency_percent])
+  end
+
+  def cpu_to_h
+    methods_to_h([:total_cpu_time_used_seconds,
+                  :walltime_seconds,
+                  :core_walltime_seconds,
+                  :cpu_efficiency_percent])
   end
 
 end

@@ -1,8 +1,8 @@
-require_relative 'concerns/instance_variables_to_h'
+require_relative 'concerns/methods_to_h'
 
 class ClusterHelper::Account
 
-  include InstanceVariablesToH
+  include MethodsToH
 
   USER_ACCOUNTS_COMMAND =
     'sacctmgr show user %<user>s withassoc -P -n format=account,share'.freeze
@@ -56,7 +56,11 @@ class ClusterHelper::Account
 
   def to_h
     load_data
-    instance_variables_to_h do |key, value|
+
+    methods_to_h([:name,
+                  :members,
+                  :norm_shares,
+                  :effective_usage]) do |key, value|
       value = value.map(&:username) if key == :members
       [key, value]
     end
