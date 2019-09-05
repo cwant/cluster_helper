@@ -10,7 +10,13 @@ module LikeAUser
   end
 
   def finished_jobs
-    @jobs ||= ClusterHelper::FinishedJob.where(user: self)
+    @finished_jobs ||= ClusterHelper::FinishedJob.where(user: self)
+  end
+
+  def reload
+    @accounts = nil
+    @jobs = nil
+    @finished_jobs = nil
   end
 
   def to_h
