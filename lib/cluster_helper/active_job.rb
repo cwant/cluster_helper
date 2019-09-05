@@ -33,12 +33,12 @@ class ClusterHelper::ActiveJob < ClusterHelper::Job
 
     private
 
-    def user_jobs_command
-      USER_JOBS_COMMAND
+    def user_jobs_command(options = {})
+      format(USER_JOBS_COMMAND, options)
     end
 
-    def account_jobs_command
-      ACCOUNT_JOBS_COMMAND
+    def account_jobs_command(options = {})
+      format(ACCOUNT_JOBS_COMMAND, options)
     end
 
     def lines_to_jobs(lines, user_cache, account_cache)

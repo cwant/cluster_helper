@@ -38,6 +38,76 @@ class ClusterHelper::FinishedJob < ClusterHelper::Job
       @slurm_fields ||= SACCT_FIELDS.keys
     end
 
+    private
+
+    def user_jobs_command(options = {})
+      days_ago = options[:days_ago] || 30
+      after = (Date.today - days_ago).to_s
+      format(USER_JOBS_COMMAND, options.merge(after: after))
+    end
+
+    def account_jobs_command(options = {})
+      days_ago = options[:days_ago] || 30
+      after = (Date.today - days_ago).to_s
+      format(ACCOUNT_JOBS_COMMAND, options.merge(after: after))
+    end
+
+    def lines_to_jobs(lines, user_cache, account_cache)
+      steps_by_id = {}
+      jobs_by_id = {}
+
+      lines.each do |line|
+        hash = line_to_hash(line)
+        if hash_is_job?(hash)
+          job = hash_to_job(hash, user_cache, account_cache)
+          jobs_by_id[job.id] = job
+        else
+          id = hash[:id].gsub(/\..*$/, '')
+          steps_by_id[id] ||= []
+          steps_by_id[id] << hash
+        end
+      end
+
+      steps_by_id.each do |id, steps|
+        job = jobs_by_id[id]
+        job.add_steps(steps) if job
+      end
+
+      jobs_by_id.values
+    end
+
+    def process_value_by_key(value, key)
+      return nil unless value
+
+      if [:memory_requested_bytes,
+          :maximum_memory_used_bytes].include?(key)
+        value = memory_to_bytes(value)
+      elsif [:allocated_cpus,
+             :number_of_nodes,
+             :number_of_tasks].include?(key)
+        value = value.to_i
+      elsif [:submit_time,
+             :start_time,
+             :end_time].include?(key)
+        value = to_datetime(value)
+      elsif [:walltime_seconds,
+             :total_cpu_time_used_seconds].include?(key)
+        value = time_to_seconds(value)
+      end
+
+      value
+    end
+
+    def line_to_hash(line)
+      arr = line.strip.split('|')
+      hash = {}
+      slurm_fields.each_with_index do |key, i|
+        hash[key] = process_value_by_key(arr[i], key)
+      end
+
+      hash
+    end
+
     def memory_to_bytes(str)
       m = str.match(/^[\d]*/)
       return 0 unless m
@@ -76,70 +146,9 @@ class ClusterHelper::FinishedJob < ClusterHelper::Job
       days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds + milli
     end
 
-    private
-
-    def user_jobs_command
-      USER_JOBS_COMMAND.gsub('%<after>s',
-                             (Date.today - 30).to_s)
-    end
-
-    def account_jobs_command
-      ACCOUNT_JOBS_COMMAND.gsub('%<after>s',
-                                (Date.today - 30).to_s)
-    end
-
-    def lines_to_jobs(lines, user_cache, account_cache)
-      steps_by_id = {}
-      jobs_by_id = {}
-
-      lines.each do |line|
-        hash = line_to_hash(line)
-        if hash_is_job?(hash)
-          job = hash_to_job(hash, user_cache, account_cache)
-          jobs_by_id[job.id] = job
-        else
-          id = hash[:id].gsub(/\..*$/, '')
-          steps_by_id[id] ||= []
-          steps_by_id[id] << hash
-        end
-      end
-
-      steps_by_id.each do |id, steps|
-        job = jobs_by_id[id]
-        job.add_steps(steps) if job
-      end
-
-      jobs_by_id.values
-    end
-
-    def line_to_hash(line)
-      arr = line.strip.split('|')
-      hash = {}
-      slurm_fields.each_with_index do |key, i|
-        value = arr[i]
-
-        if value
-          if [:memory_requested_bytes,
-              :maximum_memory_used_bytes].include?(key)
-            value = memory_to_bytes(value)
-          elsif [:allocated_cpus,
-                 :number_of_nodes,
-                 :number_of_tasks].include?(key)
-            value = value.to_i
-          elsif [:submit_time,
-                 :start_time,
-                 :end_time].include?(key)
-            value = DateTime.parse(value)
-          elsif [:walltime_seconds,
-                 :total_cpu_time_used_seconds].include?(key)
-            value = time_to_seconds(value)
-          end
-
-        end
-        hash[key] = value
-      end
-
-      hash
+    def to_datetime(value)
+      return nil if value == 'Unknown'
+      DateTime.parse(value)
     end
 
     def hash_is_job?(hash)

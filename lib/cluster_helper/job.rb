@@ -8,22 +8,24 @@ class ClusterHelper::Job
   class << self
 
     def where(options = {})
-      return where_user(username: options[:username]) if options.key?(:username)
-      return where_user(user: options[:user]) if options.key?(:user)
-      if options.key?(:account_name)
-        return where_account(account_name: options[:account_name])
+      if options.key?(:username) || options.key?(:user)
+        return where_user(options)
       end
-      return where_account(account: options[:account]) if options.key?(:account)
+      if options.key?(:account_name) || options.key?(:account)
+        return where_account(options)
+      end
       []
     end
 
     private
 
-    def where_user(username: nil, user: nil)
+    def where_user(options = {})
+      username = options[:username]
+      user = options[:user]
       return [] if username.nil? && user.nil?
       username = user.username if username.nil?
       user ||= ClusterHelper::User.new(username)
-      cmd = format(user_jobs_command, user: username)
+      cmd = user_jobs_command(options.merge(user: username))
 
       account_cache = {}
       user_cache = { user.username => user }
@@ -33,11 +35,13 @@ class ClusterHelper::Job
       lines_to_jobs(lines, user_cache, account_cache)
     end
 
-    def where_account(account_name: nil, account: nil)
+    def where_account(options = {})
+      account_name = options[:account_name]
+      account = options[:account]
       return [] if account_name.nil? && account.nil?
       account_name = account.name if account_name.nil?
       account ||= ClusterHelper::Account.new(account_name)
-      cmd = format(account_jobs_command, account: account_name)
+      cmd = account_jobs_command(options.merge(account: account_name))
 
       user_cache = {}
       account_cache = { account.name => account }
