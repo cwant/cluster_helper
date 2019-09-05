@@ -100,6 +100,10 @@ class ClusterHelper::Job
     state == 'PENDING'
   end
 
+  def completed?
+    state == 'COMPLETED'
+  end
+
   def initialize(options = {})
     allowed_options = self.class.slurm_fields + [:user]
     options.each do |key, value|

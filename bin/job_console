@@ -8,10 +8,12 @@ class JobConsole < ClusterHelper::BaseReportProgram
 
   ACCOUNT_COMMANDS = ['account', 'accounts', 'a'].freeze
   JOB_COMMANDS = ['job', 'jobs', 'j'].freeze
+  RELOAD_COMMANDS = ['reload', 'r'].freeze
   QUIT_COMMANDS = ['quit', 'exit', 'q'].freeze
   HELP_COMMANDS = ['help', 'h', '?'].freeze
   COMMANDS = (ACCOUNT_COMMANDS +
               JOB_COMMANDS +
+              RELOAD_COMMANDS +
               QUIT_COMMANDS +
               HELP_COMMANDS +
               ['user']).freeze
@@ -36,10 +38,12 @@ class JobConsole < ClusterHelper::BaseReportProgram
     puts '  jobs'
     puts '  jobs count'
     puts '  job 1112222333'
-    puts '  jobs running (or pending)'
+    puts '  jobs running (or pending, finished, completed, etc)'
+    puts '  jobs finished (anything not pending or running)'
+    puts '  jobs finished count'
     puts '  accounts'
     puts '  account members'
-    puts '  account def-howdy (or just match start of string)'
+    puts '  account def-howdy (or just match start of account name)'
     puts '  help'
     puts 'Press Ctrl-D to exit.'
   end
@@ -78,7 +82,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
     input.strip.split(';').map { |i| sanitize_input(i) }
   end
 
-  def sanitize_input(input) # rubocop:disable Metrics/PerceivedComplexity
+  def sanitize_input(input)
     parts = input.split(' ')
     method = parts[0].strip.downcase
     raise NameError(method) unless COMMANDS.include?(method)
@@ -88,6 +92,8 @@ class JobConsole < ClusterHelper::BaseReportProgram
       method = 'job'
     elsif ACCOUNT_COMMANDS.include?(method)
       method = 'account'
+    elsif RELOAD_COMMANDS.include?(method)
+      method = 'reload'
     elsif HELP_COMMANDS.include?(method)
       method = 'help'
     elsif QUIT_COMMANDS.include?(method)
@@ -104,27 +110,27 @@ class JobConsole < ClusterHelper::BaseReportProgram
   end
 
   def job(*args)
-    process_job_command(user.active_jobs, *args)
+    process_job_command(nil, *args)
   end
   alias jobs job
 
   def process_job_command(jobs, *args)
     subcommand = args.first
 
+    if ['finished', 'completed'].include?(subcommand)
+      return process_finished_job_command(jobs, *args)
+    end
+
+    jobs ||= user.active_jobs
+
     if ['all', nil].include?(subcommand)
       return render('jobs' => jobs.map { |job| job.to_h.stringify_keys })
     end
 
-    return render jobs.count if subcommand == 'count'
+    return render(count: jobs.count) if subcommand == 'count'
 
-    if subcommand == 'running'
-      jobs = jobs.select(&:running?)
-      return process_job_command(jobs, *args[1..-1])
-    end
-
-    if subcommand == 'pending'
-      jobs = jobs.select(&:pending?)
-      return process_job_command(jobs, *args[1..-1])
+    if ['running', 'pending'].include?(subcommand)
+      return process_job_state_command(jobs, *args)
     end
 
     if ACCOUNT_COMMANDS.include?(subcommand.downcase)
@@ -135,6 +141,31 @@ class JobConsole < ClusterHelper::BaseReportProgram
     job = jobs.find { |j| j.id == subcommand }
     return render('job' => job.to_h.stringify_keys) if job
     raise UnknownOption
+  end
+
+  def process_finished_job_command(jobs, *args)
+    subcommand = args.first
+
+    if jobs.nil?
+      jobs = user.finished_jobs
+    else
+      job = jobs.first
+      jobs = user.finished_jobs if job.nil? || job.active?
+    end
+    jobs = jobs.select(&:completed?) if subcommand == 'completed'
+
+    process_job_command(jobs, *args[1..-1])
+  end
+
+  def process_job_state_command(jobs, *args)
+    subcommand = args.first
+
+    if subcommand == 'running'
+      jobs = jobs.select(&:running?)
+    elsif subcommand == 'pending'
+      jobs = jobs.select(&:pending?)
+    end
+    process_job_command(jobs, *args[1..-1])
   end
 
   def account(*args)
@@ -175,6 +206,10 @@ class JobConsole < ClusterHelper::BaseReportProgram
 
   def switch_user(username = nil)
     @user = ClusterHelper::User.new(username || @options[:user])
+  end
+
+  def reload
+    @user.reload
   end
 
 end

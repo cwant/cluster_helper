@@ -183,6 +183,14 @@ class ClusterHelper::FinishedJob < ClusterHelper::Job
     out
   end
 
+  def active?
+    false
+  end
+
+  def finished?
+    true
+  end
+
   private
 
   def events_to_h
