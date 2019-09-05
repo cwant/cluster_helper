@@ -39,3 +39,9 @@ Style/MethodCallWithoutArgsParentheses:
 
 Style/WordArray:
   Enabled: false
+
+Style/SymbolArray:
+  Enabled: false
+
+Performance/Casecmp:
+  Enabled: false
