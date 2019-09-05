@@ -104,7 +104,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
   end
 
   def job(*args)
-    process_job_command(user.jobs, *args)
+    process_job_command(user.active_jobs, *args)
   end
   alias jobs job
 
@@ -163,7 +163,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
 
     if JOB_COMMANDS.include?(subcommand.downcase)
       # TODO: try to make this handle multiple accounts
-      jobs = ClusterHelper::Job.where(account: accounts.first)
+      jobs = ClusterHelper::ActiveJob.where(account: accounts.first)
       return process_job_command(jobs, *args[1..-1])
     end
 

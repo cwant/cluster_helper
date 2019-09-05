@@ -5,8 +5,12 @@ module LikeAUser
     @accounts ||= ClusterHelper::Account.where(user: self)
   end
 
-  def jobs
-    @jobs ||= ClusterHelper::Job.where(user: self)
+  def active_jobs
+    @jobs ||= ClusterHelper::ActiveJob.where(user: self)
+  end
+
+  def finished_jobs
+    @jobs ||= ClusterHelper::FinishedJob.where(user: self)
   end
 
   def to_h
