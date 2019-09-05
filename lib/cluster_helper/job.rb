@@ -1,9 +1,9 @@
-require_relative 'concerns/instance_variables_to_h'
+require_relative 'concerns/methods_to_h'
 require_relative 'monkey_patch/hash_stringify_keys'
 
 class ClusterHelper::Job
 
-  include InstanceVariablesToH
+  include MethodsToH
 
   class << self
 
@@ -50,18 +50,38 @@ class ClusterHelper::Job
 
       lines_to_jobs(lines, user_cache, account_cache)
     end
-  end
 
-  def to_h
-    instance_variables_to_h do |key, value|
-      if key == :user
-        [key, value.username]
-      elsif key == :account
-        [key, value.name]
-      else
-        [key, value]
+    def line_to_hash(line)
+      arr = line.strip.split('|')
+      hash = {}
+      slurm_fields.each_with_index do |key, i|
+        hash[key] = process_value_by_key(arr[i], key)
       end
+
+      hash
     end
+
+    def hash_to_job(hash, user_cache, account_cache)
+      username = hash[:user]
+      user = user_cache[username] ||
+             ClusterHelper::User.new(username)
+      user_cache[username] ||= user
+      hash[:user] = user
+
+      account_name = hash[:account]
+      account = account_cache[account_name] ||
+                ClusterHelper::Account.new(account_name)
+      account_cache[account_name] ||= account
+      hash[:account] = account
+
+      new(hash)
+    end
+
+    def to_datetime(value)
+      return nil if ['Unknown', 'N/A'].include?(value)
+      DateTime.parse(value)
+    end
+
   end
 
   def to_json(options = {})
@@ -87,6 +107,24 @@ class ClusterHelper::Job
       instance_variable_set(:"@#{key}", value)
     end
     raise ArgumentError, 'No jobid' if @id.nil?
+  end
+
+  private
+
+  def basic_fields_to_h
+    methods_to_h([:id,
+                  :user,
+                  :account,
+                  :name,
+                  :state]) do |key, value|
+      if key == :user
+        [key, value.username]
+      elsif key == :account
+        [key, value.name]
+      else
+        [key, value]
+      end
+    end
   end
 
 end

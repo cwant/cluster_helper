@@ -1,9 +1,4 @@
-require_relative 'concerns/instance_variables_to_h'
-require_relative 'monkey_patch/hash_stringify_keys'
-
 class ClusterHelper::ActiveJob < ClusterHelper::Job
-
-  include InstanceVariablesToH
 
   SQUEUE_FIELDS = {
     id: '%i',
@@ -15,6 +10,7 @@ class ClusterHelper::ActiveJob < ClusterHelper::Job
     submit_time: '%V',
     start_time: '%S'
   }.freeze
+
   USER_JOBS_COMMAND = ("squeue -o '" +
                        SQUEUE_FIELDS.values.map { |f| '%' + f }.join('|') +
                        "' -h -u %<user>s").freeze
@@ -22,8 +18,7 @@ class ClusterHelper::ActiveJob < ClusterHelper::Job
                           SQUEUE_FIELDS.values.map { |f| '%' + f }.join('|') +
                           "' -h -A %<account>s").freeze
 
-  attr_reader :id, :priority, :state, :user, :account, :name
-  attr_reader :submit_time, :start_time
+  attr_reader(*SQUEUE_FIELDS.keys)
 
   class << self
 
@@ -45,27 +40,33 @@ class ClusterHelper::ActiveJob < ClusterHelper::Job
       lines.map { |line| line_to_job(line, user_cache, account_cache) }
     end
 
-    def line_to_job(line, user_cache, account_cache)
-      out = {}
-      arr = line.strip.split('|')
-      slurm_fields.each_with_index do |key, i|
-        value = arr[i]
-        if key == :user
-          user = user_cache[value] ||
-                 ClusterHelper::User.new(value)
-          user_cache[value] ||= user
-          out[:user] = user
-        elsif key == :account
-          account = account_cache[value] ||
-                    ClusterHelper::Account.new(value)
-          account_cache[value] ||= account
-          out[:account] = account
-        else
-          out[key] = value
-        end
+    def process_value_by_key(value, key)
+      return nil unless value
+
+      if [:submit_time,
+          :start_time,
+          :end_time].include?(key)
+        value = to_datetime(value)
       end
-      new(out)
+
+      value
     end
+
+    def line_to_job(line, user_cache, account_cache)
+      hash = line_to_hash(line)
+      hash_to_job(hash, user_cache, account_cache)
+    end
+  end
+
+  def to_h
+    out = basic_fields_to_h
+    out[:priority] = priority
+    out[:events] = methods_to_h([:submit_time,
+                                 :start_time]) do |key, value|
+      value = value.strftime('%FT%T') if value
+      [key, value]
+    end
+    out
   end
 
 end
