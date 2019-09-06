@@ -83,6 +83,67 @@ class ClusterHelper::Job
       Time.parse(value).to_datetime
     end
 
+    def process_value_by_key(value, key)
+      return nil unless value
+
+      if [:memory_requested_bytes,
+          :maximum_memory_used_bytes].include?(key)
+        value = memory_to_bytes(value)
+      elsif [:number_of_cpus,
+             :allocated_cpus,
+             :number_of_nodes,
+             :number_of_tasks].include?(key)
+        value = value.to_i
+      elsif [:submit_time,
+             :start_time,
+             :end_time].include?(key)
+        value = to_datetime(value)
+      elsif [:walltime_seconds,
+             :total_cpu_time_used_seconds].include?(key)
+        value = time_to_seconds(value)
+      end
+
+      value
+    end
+
+    def memory_to_bytes(str)
+      m = str.match(/^[\d]*/)
+      return 0 unless m
+      value = m[0].to_i
+
+      tail = str.gsub(/^[\d]*/, '')
+      return value if tail.empty?
+      return 1024 * value if tail[0].downcase == 'k'
+      return (1024**2) * value  if tail[0].downcase == 'm'
+      return (1024**3) * value  if tail[0].downcase == 'g'
+      return (1024**4) * value  if tail[0].downcase == 't'
+      value
+    end
+
+    def time_to_seconds(str)
+      parts = str.split('.')
+      str = parts[0]
+      milli_str = parts.length > 1 ? parts[1] : nil
+      milli = 0
+      milli = "0.#{milli_str}".to_f if milli_str
+      parts = str.split('-')
+      days = 0
+      hours = 0
+      minutes = 0
+      if parts.length > 1
+        days = parts[0].to_i
+        str = parts[1]
+      else
+        str = parts[0]
+      end
+      parts = str.split(':').reverse
+      seconds = parts[0].to_i
+      minutes = parts[1].to_i if parts.length > 1
+      hours = parts[2].to_i if parts.length > 2
+
+      days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds + milli
+    end
+
   end
 
   def to_json(options = {})
@@ -152,6 +213,10 @@ class ClusterHelper::Job
     out
   end
 
+  def memory_requested_megabytes
+    (memory_requested_bytes / 1024.0**2).round(3)
+  end
+
   private
 
   def basic_fields_to_h
@@ -168,6 +233,12 @@ class ClusterHelper::Job
         [key, value]
       end
     end
+  end
+
+  def request_to_h
+    methods_to_h([:number_of_nodes,
+                  :number_of_cpus,
+                  :memory_requested_megabytes])
   end
 
 end
