@@ -1,3 +1,4 @@
+require 'time'
 require_relative 'concerns/methods_to_h'
 require_relative 'monkey_patch/hash_stringify_keys'
 
@@ -79,7 +80,7 @@ class ClusterHelper::Job
 
     def to_datetime(value)
       return nil if ['Unknown', 'N/A'].include?(value)
-      DateTime.parse(value)
+      Time.parse(value).to_datetime
     end
 
   end
@@ -113,7 +114,29 @@ class ClusterHelper::Job
     raise ArgumentError, 'No jobid' if @id.nil?
   end
 
+  def time_in_queue_seconds
+    return nil unless submit_time
+    start = start_time || Time.now
+
+    start.to_time.to_i - submit_time.to_time.to_i
+  end
+
+  def time_in_queue
+    time_readable(time_in_queue_seconds)
+  end
+
+  def format_events(key, value)
+    if [:submit_time,
+        :start_time,
+        :end_time].include?(key)
+      value = value.strftime('%FT%T') if value
+    end
+    [key, value]
+  end
+
   def time_readable(total_seconds)
+    return nil unless total_seconds
+
     int_seconds = total_seconds.to_i
     left_over = (total_seconds - int_seconds).round(3)
     seconds = int_seconds % 60

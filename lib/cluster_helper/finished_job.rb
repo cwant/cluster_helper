@@ -214,9 +214,9 @@ class ClusterHelper::FinishedJob < ClusterHelper::Job
   def events_to_h
     methods_to_h([:submit_time,
                   :start_time,
-                  :end_time]) do |key, value|
-      value = value.strftime('%FT%T') if value
-      [key, value]
+                  :end_time,
+                  :time_in_queue]) do |key, value|
+      format_events(key, value)
     end
   end
 
