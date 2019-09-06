@@ -62,9 +62,9 @@ class ClusterHelper::ActiveJob < ClusterHelper::Job
     out = basic_fields_to_h
     out[:priority] = priority
     out[:events] = methods_to_h([:submit_time,
-                                 :start_time]) do |key, value|
-      value = value.strftime('%FT%T') if value
-      [key, value]
+                                 :start_time,
+                                 :time_in_queue]) do |key, value|
+      format_events(key, value)
     end
     out
   end
