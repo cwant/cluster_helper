@@ -182,10 +182,12 @@ class ClusterHelper::FinishedJob < ClusterHelper::Job
   end
 
   def cpu_efficiency_percent
+    return nil unless cpu_efficiency
     (100.0 * cpu_efficiency).round(3)
   end
 
   def memory_efficiency_percent
+    return nil unless memory_efficiency
     (100.0 * memory_efficiency).round(3)
   end
 
