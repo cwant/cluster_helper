@@ -5,6 +5,10 @@ require 'json'
 class ClusterHelper::BaseReportProgram
 
   class UnknownOption < StandardError; end
+  class UnknownFormat < StandardError; end
+
+  FORMATS = [:yaml, :json, :compact_json]
+  DEFAULT_FORMAT = :yaml
 
   def self.config_options
     @config_options ||= []
@@ -14,25 +18,41 @@ class ClusterHelper::BaseReportProgram
     config_options << :"options_#{option}"
   end
 
-  def self.default_format(format) # rubocop:disable Style/TrivialAccessors
+  def self.default_format(format = nil)
+    if format.nil?
+      @default_format ||= DEFAULT_FORMAT
+      return @default_format
+    end
+    raise UnknownFormat unless FORMATS.include?(format)
+
     @default_format = format
+  end
+
+  def use_format(format = nil)
+    format ||= self.class.default_format
+    format = format.to_sym
+    if FORMATS.include?(format)
+      @options[:format] = format
+      return
+    end
+    raise UnknownFormat, format.to_s
   end
 
   def options_json(opts)
     opts.on('-J', '--json', 'Output pretty JSON') do
-      @options[:format] = :json
+      use_format(:json)
     end
   end
 
   def options_compact_json(opts)
     opts.on('-C', '--compact-json', 'Output compact JSON') do
-      @options[:format] = :compact_json
+      use_format(:compact_json)
     end
   end
 
   def options_yaml(opts)
     opts.on('-Y', '--yaml', 'Output YAML') do
-      @options[:format] = :yaml
+      use_format(:yaml)
     end
   end
 
@@ -43,7 +63,7 @@ class ClusterHelper::BaseReportProgram
   end
 
   def process_options
-    @options = { format: :yaml }
+    @options = { format: self.class.default_format }
 
     program = $PROGRAM_NAME.split('/').last
 
