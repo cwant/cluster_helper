@@ -9,14 +9,18 @@ class JobConsole < ClusterHelper::BaseReportProgram
   ACCOUNT_COMMANDS = ['account', 'accounts', 'a'].freeze
   JOB_COMMANDS = ['job', 'jobs', 'j'].freeze
   RELOAD_COMMANDS = ['reload', 'r'].freeze
+  FORMAT_COMMANDS = ['format', 'f'].freeze
   QUIT_COMMANDS = ['quit', 'exit', 'q'].freeze
   HELP_COMMANDS = ['help', 'h', '?'].freeze
+  USER_COMMANDS = ['user', 'u'].freeze
+
   COMMANDS = (ACCOUNT_COMMANDS +
               JOB_COMMANDS +
               RELOAD_COMMANDS +
+              FORMAT_COMMANDS +
               QUIT_COMMANDS +
               HELP_COMMANDS +
-              ['user']).freeze
+              USER_COMMANDS).freeze
 
   config_option :user
   config_option :json
@@ -44,6 +48,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
     puts '  accounts'
     puts '  account members'
     puts '  account def-howdy (or just match start of account name)'
+    puts '  format json (default format yaml)'
     puts '  help'
     puts 'Press Ctrl-D to exit.'
   end
@@ -69,6 +74,8 @@ class JobConsole < ClusterHelper::BaseReportProgram
         end
       rescue UnknownOption => e
         puts "Bad option #{e.message} (type 'help' for assistance)"
+      rescue ClusterHelper::BaseReportProgram::UnknownFormat => e
+        puts "Bad format #{e.message} (type 'help' for assistance)"
       rescue NameError => e
         puts "Bad command #{e.message} (type 'help' for assistance)"
       rescue StandardError => e
@@ -86,9 +93,8 @@ class JobConsole < ClusterHelper::BaseReportProgram
     parts = input.split(' ')
     method = parts[0].strip.downcase
     raise NameError, method unless COMMANDS.include?(method)
-    if method == 'user'
-      method = 'switch_user'
-    elsif JOB_COMMANDS.include?(method)
+
+    if JOB_COMMANDS.include?(method)
       method = 'job'
     elsif ACCOUNT_COMMANDS.include?(method)
       method = 'account'
@@ -96,6 +102,10 @@ class JobConsole < ClusterHelper::BaseReportProgram
       method = 'reload'
     elsif HELP_COMMANDS.include?(method)
       method = 'help'
+    elsif FORMAT_COMMANDS.include?(method)
+      method = 'use_format'
+    elsif USER_COMMANDS.include?(method)
+      method = 'switch_user'
     elsif QUIT_COMMANDS.include?(method)
       return nil
     end
