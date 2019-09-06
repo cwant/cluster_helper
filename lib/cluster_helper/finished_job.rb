@@ -27,7 +27,7 @@ class ClusterHelper::FinishedJob < ClusterHelper::Job
                           SACCT_FIELDS.values.join(',')).freeze
 
   attr_reader(*SACCT_FIELDS.keys)
-  attr_reader :memory_efficiency_percent, :cpu_efficiency_percent
+  attr_reader :memory_efficiency, :cpu_efficiency
   attr_reader :core_walltime_seconds
 
   class << self
@@ -156,19 +156,37 @@ class ClusterHelper::FinishedJob < ClusterHelper::Job
     end
     max_memory_bytes *= @number_of_tasks
     @maximum_memory_used_bytes = max_memory_bytes
-    @memory_efficiency_percent =
-      (100.0 * max_memory_bytes) / memory_requested_bytes
+    @memory_efficiency = max_memory_bytes.to_f / memory_requested_bytes
     @core_walltime_seconds = walltime_seconds * allocated_cpus
-    @cpu_efficiency_percent =
-      (100.0 * total_cpu_seconds) / @core_walltime_seconds
+    @cpu_efficiency = total_cpu_seconds.to_f / @core_walltime_seconds
   end
 
   def memory_requested_megabytes
-    memory_requested_bytes / 1024.0**2
+    (memory_requested_bytes / 1024.0**2).round(3)
   end
 
   def maximum_memory_used_megabytes
-    maximum_memory_used_bytes / 1024.0**2
+    (maximum_memory_used_bytes / 1024.0**2).round(3)
+  end
+
+  def total_cpu_time_used
+    time_readable(total_cpu_time_used_seconds)
+  end
+
+  def walltime
+    time_readable(walltime_seconds)
+  end
+
+  def core_walltime
+    time_readable(core_walltime_seconds)
+  end
+
+  def cpu_efficiency_percent
+    (100.0 * cpu_efficiency).round(3)
+  end
+
+  def memory_efficiency_percent
+    (100.0 * memory_efficiency).round(3)
   end
 
   def to_h
@@ -209,9 +227,9 @@ class ClusterHelper::FinishedJob < ClusterHelper::Job
   end
 
   def cpu_to_h
-    methods_to_h([:total_cpu_time_used_seconds,
-                  :walltime_seconds,
-                  :core_walltime_seconds,
+    methods_to_h([:total_cpu_time_used,
+                  :walltime,
+                  :core_walltime,
                   :cpu_efficiency_percent])
   end
 
