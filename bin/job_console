@@ -67,10 +67,10 @@ class JobConsole < ClusterHelper::BaseReportProgram
           return nil unless command
           bnd.eval command
         end
-      rescue UnknownOption
-        puts "Bad option (type 'help' for assistance)"
-      rescue NameError
-        puts "Bad command (type 'help' for assistance)"
+      rescue UnknownOption => e
+        puts "Bad option #{e.message} (type 'help' for assistance)"
+      rescue NameError => e
+        puts "Bad command #{e.message} (type 'help' for assistance)"
       rescue StandardError => e
         puts "Error (#{e.class}) (type 'help' for assistance)"
       end
@@ -85,7 +85,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
   def sanitize_input(input)
     parts = input.split(' ')
     method = parts[0].strip.downcase
-    raise NameError(method) unless COMMANDS.include?(method)
+    raise NameError, method unless COMMANDS.include?(method)
     if method == 'user'
       method = 'switch_user'
     elsif JOB_COMMANDS.include?(method)
@@ -111,6 +111,11 @@ class JobConsole < ClusterHelper::BaseReportProgram
 
   def job(*args)
     process_job_command(nil, *args)
+  rescue UnknownOption => e
+    jobid = args.first
+    job = user.finished_jobs.find { |j| j.id == jobid }
+    return render('job' => job.to_h.stringify_keys) if job
+    raise e
   end
   alias jobs job
 
@@ -140,7 +145,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
 
     job = jobs.find { |j| j.id == subcommand }
     return render('job' => job.to_h.stringify_keys) if job
-    raise UnknownOption
+    raise UnknownOption, subcommand
   end
 
   def process_finished_job_command(jobs, *args)
