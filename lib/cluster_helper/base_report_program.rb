@@ -7,7 +7,7 @@ class ClusterHelper::BaseReportProgram
   class UnknownOption < StandardError; end
   class UnknownFormat < StandardError; end
 
-  FORMATS = [:yaml, :json, :compact_json]
+  FORMATS = [:yaml, :json, :compact_json].freeze
   DEFAULT_FORMAT = :yaml
 
   def self.config_options
