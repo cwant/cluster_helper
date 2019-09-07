@@ -22,6 +22,8 @@ class JobConsole < ClusterHelper::BaseReportProgram
               HELP_COMMANDS +
               USER_COMMANDS).freeze
 
+  AUTOCOMPLETE = COMMANDS.select { |c| c.length > 1 }.freeze
+
   config_option :user
   config_option :json
   config_option :compact_json
@@ -55,17 +57,27 @@ class JobConsole < ClusterHelper::BaseReportProgram
   alias help print_help
 
   def main
-    bnd = binding()
-    if @options[:command]
-      input_to_commands(@options[:command]).each do |command|
-        break unless command
-        bnd.eval command
-      end
-      return
-    end
+    return single_command(@options[:command]) if @options[:command]
 
     print_help
+    command_loop
+  end
 
+  def single_command(input)
+    bnd = binding()
+    input_to_commands(input).each do |command|
+      break unless command
+      bnd.eval command
+    end
+  end
+
+  def command_loop
+    comp = proc { |s| AUTOCOMPLETE.grep(/^#{Regexp.escape(s)}/) }
+
+    Readline.completion_append_character = ' '
+    Readline.completion_proc = comp
+
+    bnd = binding()
     while (input = Readline.readline(prompt, true))
       begin
         input_to_commands(input).each do |command|
