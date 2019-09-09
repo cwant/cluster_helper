@@ -9,14 +9,14 @@ module LikeAUser
     @jobs ||= ClusterHelper::ActiveJob.where(user: self)
   end
 
-  def finished_jobs
-    @finished_jobs ||= ClusterHelper::FinishedJob.where(user: self)
+  def inactive_jobs
+    @inactive_jobs ||= ClusterHelper::InactiveJob.where(user: self)
   end
 
   def reload
     @accounts = nil
     @jobs = nil
-    @finished_jobs = nil
+    @inactive_jobs = nil
   end
 
   def to_h
