@@ -1,4 +1,4 @@
-class ClusterHelper::FinishedJob < ClusterHelper::Job
+class ClusterHelper::InactiveJob < ClusterHelper::Job
 
   SACCT_FIELDS = {
     id: 'JobID',
@@ -146,7 +146,7 @@ class ClusterHelper::FinishedJob < ClusterHelper::Job
     false
   end
 
-  def finished?
+  def inactive?
     true
   end
 

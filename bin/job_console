@@ -29,10 +29,10 @@ class JobConsole < ClusterHelper::BaseReportProgram
 
   ACTIVE_STATE_SUBCOMMANDS = ['pending',
                               'running'].freeze
-  FINISHED_STATE_SUBCOMMANDS = ['finished',
+  INACTIVE_STATE_SUBCOMMANDS = ['inactive',
                                 'completed'].freeze
   STATE_SUBCOMMANDS = (ACTIVE_STATE_SUBCOMMANDS +
-                       FINISHED_STATE_SUBCOMMANDS).freeze
+                       INACTIVE_STATE_SUBCOMMANDS).freeze
   COUNT_SUBCOMMANDS = ['count'].freeze
 
   ACCOUNT_SUBCOMMANDS = (NAME_SUBCOMMANDS +
@@ -40,7 +40,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
   JOB_SUBCOMMANDS = (SHOW_ALL_SUBCOMMANDS +
                      STATE_SUBCOMMANDS +
                      COUNT_SUBCOMMANDS).freeze
-  FORMAT_SUBCOMMANDS = ['json', 'yaml', 'compact_json']
+  FORMAT_SUBCOMMANDS = ['json', 'yaml', 'compact_json'].freeze
 
   SUBCOMMANDS = (ACCOUNT_SUBCOMMANDS +
                  JOB_SUBCOMMANDS +
@@ -69,9 +69,9 @@ class JobConsole < ClusterHelper::BaseReportProgram
     puts '  jobs'
     puts '  jobs count'
     puts '  job 1112222333'
-    puts '  jobs running (or pending, finished, completed, etc)'
-    puts '  jobs finished (anything not pending or running)'
-    puts '  jobs finished count'
+    puts '  jobs running (or pending, inactive, completed, etc)'
+    puts '  jobs inactive (anything not pending or running)'
+    puts '  jobs inactive count'
     puts '  accounts'
     puts '  account members'
     puts '  account def-howdy (or just match start of account name)'
@@ -127,6 +127,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
   end
 
   def sanitize_input(input)
+    puts input
     parts = input.split(' ')
     method = parts[0].strip.downcase
 
@@ -145,7 +146,12 @@ class JobConsole < ClusterHelper::BaseReportProgram
     elsif QUIT_COMMANDS.include?(method)
       return nil
     elsif JOB_SUBCOMMANDS.include?(method)
-      parts = ['job'] + parts
+      parts =
+        if parts.length > 1 && JOB_COMMANDS.include?(parts[1])
+          ['job'] + [parts[0]] + parts[2..-1]
+        else
+          ['job'] + parts
+        end
       method = 'job'
     elsif ACCOUNT_SUBCOMMANDS.include?(method)
       parts = ['account'] + parts
@@ -170,7 +176,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
     process_job_command(nil, *args)
   rescue UnknownOption => e
     jobid = args.first
-    job = user.finished_jobs.find { |j| j.id == jobid }
+    job = user.inactive_jobs.find { |j| j.id == jobid }
     return render('job' => job.to_h.stringify_keys) if job
     raise e
   end
@@ -179,8 +185,8 @@ class JobConsole < ClusterHelper::BaseReportProgram
   def process_job_command(jobs, *args)
     subcommand = args.first
 
-    if FINISHED_STATE_SUBCOMMANDS.include?(subcommand)
-      return process_finished_job_command(jobs, *args)
+    if INACTIVE_STATE_SUBCOMMANDS.include?(subcommand)
+      return process_inactive_job_command(jobs, *args)
     end
 
     jobs ||= user.active_jobs
@@ -205,14 +211,14 @@ class JobConsole < ClusterHelper::BaseReportProgram
     raise UnknownOption, subcommand
   end
 
-  def process_finished_job_command(jobs, *args)
+  def process_inactive_job_command(jobs, *args)
     subcommand = args.first
 
     if jobs.nil?
-      jobs = user.finished_jobs
+      jobs = user.inactive_jobs
     else
       job = jobs.first
-      jobs = user.finished_jobs if job.nil? || job.active?
+      jobs = user.inactive_jobs if job.nil? || job.active?
     end
     jobs = jobs.select(&:completed?) if subcommand == 'completed'
 

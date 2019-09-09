@@ -65,7 +65,7 @@ class ClusterHelper::ActiveJob < ClusterHelper::Job
     true
   end
 
-  def finished?
+  def inactive?
     false
   end
 end
