@@ -115,4 +115,8 @@ class ClusterHelper::BaseReportProgram
     end
   end
 
+  def format
+    @options[:format]
+  end
+
 end

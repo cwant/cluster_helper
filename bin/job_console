@@ -13,6 +13,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
   QUIT_COMMANDS = ['quit', 'exit', 'q'].freeze
   HELP_COMMANDS = ['help', 'h', '?'].freeze
   USER_COMMANDS = ['user', 'u'].freeze
+  SETTINGS_COMMANDS = ['settings', 's'].freeze
 
   COMMANDS = (ACCOUNT_COMMANDS +
               JOB_COMMANDS +
@@ -20,6 +21,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
               FORMAT_COMMANDS +
               QUIT_COMMANDS +
               HELP_COMMANDS +
+              SETTINGS_COMMANDS +
               USER_COMMANDS).freeze
 
   NAME_SUBCOMMANDS = ['name', 'names', 'n'].freeze
@@ -96,6 +98,11 @@ class JobConsole < ClusterHelper::BaseReportProgram
     end
   end
 
+  def settings
+    render(settings: { user: user.username,
+                       format: format })
+  end
+
   def command_loop
     comp = proc { |s| AUTOCOMPLETE.grep(/^#{Regexp.escape(s)}/) }
 
@@ -127,7 +134,6 @@ class JobConsole < ClusterHelper::BaseReportProgram
   end
 
   def sanitize_input(input)
-    puts input
     parts = input.split(' ')
     method = parts[0].strip.downcase
 
@@ -143,6 +149,8 @@ class JobConsole < ClusterHelper::BaseReportProgram
       method = 'use_format'
     elsif USER_COMMANDS.include?(method)
       method = 'switch_user'
+    elsif SETTINGS_COMMANDS.include?(method)
+      method = 'settings'
     elsif QUIT_COMMANDS.include?(method)
       return nil
     elsif JOB_SUBCOMMANDS.include?(method)
