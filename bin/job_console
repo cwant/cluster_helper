@@ -22,7 +22,32 @@ class JobConsole < ClusterHelper::BaseReportProgram
               HELP_COMMANDS +
               USER_COMMANDS).freeze
 
-  AUTOCOMPLETE = COMMANDS.select { |c| c.length > 1 }.freeze
+  NAME_SUBCOMMANDS = ['name', 'names', 'n'].freeze
+  MEMBER_SUBCOMMANDS = ['member', 'members', 'm'].freeze
+
+  SHOW_ALL_SUBCOMMANDS = ['all', nil].freeze
+
+  ACTIVE_STATE_SUBCOMMANDS = ['pending',
+                              'running'].freeze
+  FINISHED_STATE_SUBCOMMANDS = ['finished',
+                                'completed'].freeze
+  STATE_SUBCOMMANDS = (ACTIVE_STATE_SUBCOMMANDS +
+                       FINISHED_STATE_SUBCOMMANDS).freeze
+  COUNT_SUBCOMMANDS = ['count'].freeze
+
+  ACCOUNT_SUBCOMMANDS = (NAME_SUBCOMMANDS +
+                         MEMBER_SUBCOMMANDS).freeze
+  JOB_SUBCOMMANDS = (SHOW_ALL_SUBCOMMANDS +
+                     STATE_SUBCOMMANDS +
+                     COUNT_SUBCOMMANDS).freeze
+  FORMAT_SUBCOMMANDS = ['json', 'yaml', 'compact_json']
+
+  SUBCOMMANDS = (ACCOUNT_SUBCOMMANDS +
+                 JOB_SUBCOMMANDS +
+                 FORMAT_SUBCOMMANDS).freeze
+
+  AUTOCOMPLETE = (COMMANDS + SUBCOMMANDS)
+                 .select { |c| c && c.length > 1 }.uniq.freeze
 
   config_option :user
   config_option :json
@@ -104,7 +129,6 @@ class JobConsole < ClusterHelper::BaseReportProgram
   def sanitize_input(input)
     parts = input.split(' ')
     method = parts[0].strip.downcase
-    raise NameError, method unless COMMANDS.include?(method)
 
     if JOB_COMMANDS.include?(method)
       method = 'job'
@@ -120,6 +144,17 @@ class JobConsole < ClusterHelper::BaseReportProgram
       method = 'switch_user'
     elsif QUIT_COMMANDS.include?(method)
       return nil
+    elsif JOB_SUBCOMMANDS.include?(method)
+      parts = ['job'] + parts
+      method = 'job'
+    elsif ACCOUNT_SUBCOMMANDS.include?(method)
+      parts = ['account'] + parts
+      method = 'account'
+    elsif FORMAT_SUBCOMMANDS.include?(method)
+      parts = ['format'] + parts
+      method = 'use_format'
+    else
+      raise NameError, method
     end
 
     args = parts[1..-1].map { |value| "'#{value}'" }
@@ -144,19 +179,19 @@ class JobConsole < ClusterHelper::BaseReportProgram
   def process_job_command(jobs, *args)
     subcommand = args.first
 
-    if ['finished', 'completed'].include?(subcommand)
+    if FINISHED_STATE_SUBCOMMANDS.include?(subcommand)
       return process_finished_job_command(jobs, *args)
     end
 
     jobs ||= user.active_jobs
 
-    if ['all', nil].include?(subcommand)
+    if SHOW_ALL_SUBCOMMANDS.include?(subcommand)
       return render('jobs' => jobs.map { |job| job.to_h.stringify_keys })
     end
 
     return render(count: jobs.count) if subcommand == 'count'
 
-    if ['running', 'pending'].include?(subcommand)
+    if ACTIVE_STATE_SUBCOMMANDS.include?(subcommand)
       return process_job_state_command(jobs, *args)
     end
 
