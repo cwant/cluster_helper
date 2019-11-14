@@ -58,6 +58,9 @@ class JobConsole < ClusterHelper::BaseReportProgram
 
   config_option :command
 
+  attr_accessor :accounts
+  attr_accessor :jobs
+
   private
 
   def options_command(opts)
@@ -138,9 +141,9 @@ class JobConsole < ClusterHelper::BaseReportProgram
     method = parts[0].strip.downcase
 
     if JOB_COMMANDS.include?(method)
-      method = 'job'
+      method = 'job_command'
     elsif ACCOUNT_COMMANDS.include?(method)
-      method = 'account'
+      method = 'account_command'
     elsif RELOAD_COMMANDS.include?(method)
       method = 'reload'
     elsif HELP_COMMANDS.include?(method)
@@ -155,10 +158,10 @@ class JobConsole < ClusterHelper::BaseReportProgram
       return nil
     elsif JOB_SUBCOMMANDS.include?(method)
       parts = ['job'] + parts
-      method = 'job'
+      method = 'job_command'
     elsif ACCOUNT_SUBCOMMANDS.include?(method)
       parts = ['account'] + parts
-      method = 'account'
+      method = 'account_command'
     elsif FORMAT_SUBCOMMANDS.include?(method)
       parts = ['format'] + parts
       method = 'use_format'
@@ -175,8 +178,9 @@ class JobConsole < ClusterHelper::BaseReportProgram
     "job_console(#{user.username})> "
   end
 
-  def job(*args)
-    process_job_command(nil, *args)
+  def job_command(*args)
+    reset_jobs_accounts
+    process_job_command(*args)
   rescue UnknownOption => e
     # Subcommand not known? Assume it is an inactive job ID
     jobid = args.first
@@ -184,9 +188,8 @@ class JobConsole < ClusterHelper::BaseReportProgram
     return render('job' => job.to_h.stringify_keys) if job
     raise e
   end
-  alias jobs job
 
-  def process_job_command(jobs, *args)
+  def process_job_command(*args)
     subcommand = args.first
     if subcommand && JOB_COMMANDS.include?(subcommand.downcase)
       # e.g., strip out unneccessary 'job'
@@ -196,10 +199,10 @@ class JobConsole < ClusterHelper::BaseReportProgram
     end
 
     if INACTIVE_STATE_SUBCOMMANDS.include?(subcommand)
-      return process_inactive_job_command(jobs, *args)
+      return process_inactive_job_command(*args)
     end
 
-    jobs ||= user.active_jobs
+    self.jobs ||= user.active_jobs
 
     if SHOW_ALL_SUBCOMMANDS.include?(subcommand)
       return render('jobs' => jobs.map { |job| job.to_h.stringify_keys })
@@ -208,12 +211,12 @@ class JobConsole < ClusterHelper::BaseReportProgram
     return render(count: jobs.count) if subcommand == 'count'
 
     if ACTIVE_STATE_SUBCOMMANDS.include?(subcommand)
-      return process_job_state_command(jobs, *args)
+      return process_job_state_command(*args)
     end
 
     if ACCOUNT_COMMANDS.include?(subcommand.downcase)
       accounts = jobs.map(&:account).uniq
-      return process_account_command(accounts, *args[1..-1])
+      return process_account_command(*args[1..-1])
     end
 
     job = jobs.find { |j| j.id == subcommand }
@@ -221,37 +224,45 @@ class JobConsole < ClusterHelper::BaseReportProgram
     raise UnknownOption, subcommand
   end
 
-  def process_inactive_job_command(jobs, *args)
+  def process_inactive_job_command(*args)
     subcommand = args.first
 
     if jobs.nil?
-      jobs = ClusterHelper::InactiveJob.user(user).all
+      self.jobs = ClusterHelper::InactiveJob.user(user).all
     else
       job = jobs.first
-      jobs = user.inactive_jobs if job.nil? || job.active?
+      self.jobs = user.inactive_jobs if job.nil? || job.active?
     end
-    jobs = jobs.select(&:completed?) if subcommand == 'completed'
+    self.jobs = jobs.select(&:completed?) if subcommand == 'completed'
 
-    process_job_command(jobs, *args[1..-1])
+    process_job_command(*args[1..-1])
   end
 
-  def process_job_state_command(jobs, *args)
+  def process_job_state_command(*args)
     subcommand = args.first
 
     if subcommand == 'running'
-      jobs = jobs.select(&:running?)
+      self.jobs = jobs.select(&:running?)
     elsif subcommand == 'pending'
-      jobs = jobs.select(&:pending?)
+      self.jobs = jobs.select(&:pending?)
     end
-    process_job_command(jobs, *args[1..-1])
+    process_job_command(*args[1..-1])
   end
 
-  def account(*args)
-    process_account_command(user.accounts, *args)
+  def reset_jobs_accounts
+    self.jobs = nil
+    self.accounts = user.accounts
   end
-  alias accounts account
 
-  def process_account_command(accounts, *args)
+  def account_command(*args)
+    reset_jobs_accounts
+    process_account_command(*args)
+  end
+
+  def process_account_command(*args)
+    puts "wha" if accounts.nil?
+    self.accounts ||= user.accounts
+
     subcommand = args.first
 
     if ['name', 'names'].include?(subcommand)
@@ -272,11 +283,11 @@ class JobConsole < ClusterHelper::BaseReportProgram
 
     if JOB_COMMANDS.include?(subcommand.downcase)
       jobs = ClusterHelper::ActiveJob.account(accounts).all
-      return process_job_command(jobs, *args[1..-1])
+      return process_job_command(*args[1..-1])
     end
 
-    accounts = accounts.select { |j| j.name.start_with?(subcommand) }
-    return process_account_command(accounts, *args[1..-1]) if accounts
+    self.accounts = accounts.select { |j| j.name.start_with?(subcommand) }
+    return process_account_command(*args[1..-1]) if accounts
 
     raise UnknownOption
   end
