@@ -1,51 +1,18 @@
 class ClusterHelper::ActiveJob < ClusterHelper::Job
 
-  SQUEUE_FIELDS = {
-    id: '%i',
-    user: '%u',
-    account: '%a',
-    name: '%j',
-    state: '%T',
-    priority: '%Q',
-    submit_time: '%V',
-    start_time: '%S',
-    memory_requested_bytes: '%m',
-    number_of_cpus: '%C',
-    number_of_nodes: '%D'
-  }.freeze
+  FIELDS = ClusterHelper::ActiveJobQuery::SQUEUE_FIELDS.keys  
 
-  USER_JOBS_COMMAND = ("squeue -o '" +
-                       SQUEUE_FIELDS.values.map { |f| '%' + f }.join('|') +
-                       "' -h -u %<user>s").freeze
-  ACCOUNT_JOBS_COMMAND = ("squeue -o '" +
-                          SQUEUE_FIELDS.values.map { |f| '%' + f }.join('|') +
-                          "' -h -A %<account>s").freeze
-
-  attr_reader(*SQUEUE_FIELDS.keys)
+  attr_reader(*FIELDS)
 
   class << self
+    [:user, :username, :account, :account_name].each do |method|
+      define_method(method) do |*args|
+        ClusterHelper::ActiveJobQuery.new.send(method, *args)
+      end
+    end
 
     def slurm_fields
-      @slurm_fields ||= SQUEUE_FIELDS.keys
-    end
-
-    private
-
-    def user_jobs_command(options = {})
-      format(USER_JOBS_COMMAND, options)
-    end
-
-    def account_jobs_command(options = {})
-      format(ACCOUNT_JOBS_COMMAND, options)
-    end
-
-    def lines_to_jobs(lines, user_cache, account_cache)
-      lines.map { |line| line_to_job(line, user_cache, account_cache) }
-    end
-
-    def line_to_job(line, user_cache, account_cache)
-      hash = line_to_hash(line)
-      hash_to_job(hash, user_cache, account_cache)
+      @slurm_fields ||= FIELDS
     end
   end
 
@@ -68,4 +35,5 @@ class ClusterHelper::ActiveJob < ClusterHelper::Job
   def inactive?
     false
   end
+
 end

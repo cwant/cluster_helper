@@ -14,9 +14,13 @@ class ClusterHelper::Account
 
   class << self
 
-    def where(username: nil, user: nil)
-      return [] if username.nil? && user.nil?
-      username = user.username if username.nil?
+    def user(user)
+      return [] if user.nil?
+      username(user.username)
+    end
+
+    def username(username)
+      return [] if username.nil?
       cmd = format(USER_ACCOUNTS_COMMAND, user: username)
 
       # TODO: handle errors
