@@ -28,33 +28,29 @@ class ClusterHelper::JobQuery
 
   def user(users)
     Array(users).each do |user|
-      @user_cache[user.username] ||= user
-      @payload[:users] << user
-    end
-    self
-  end
-
-  def username(usernames)
-    Array(usernames).each do |username|
-      @user_cache[username] ||= ClusterHelper::User.new(username)
-      @payload[:users] << @user_cache[username]
+      if user.is_a?(String)
+        username = user
+        @user_cache[username] ||= ClusterHelper::User.new(username)
+        @payload[:users] << @user_cache[username]
+      else
+        @user_cache[user.username] ||= user
+        @payload[:users] << user
+      end
     end
     self
   end
 
   def account(accounts)
     Array(accounts).each do |account|
-      @account_cache[account.name] ||= account
-      @payload[:accounts] << account
-    end
-    self
-  end
-
-  def account_name(account_names)
-    Array(account_names).each do |account_name|
-      @account_cache[account_name] ||=
-        ClusterHelper::Account.new(account_name)
-      @payload[:accounts] << @account_cache[account_name]
+      if account.is_a?(String)
+        account_name = account
+        @account_cache[account_name] ||=
+          ClusterHelper::Account.new(account_name)
+        @payload[:accounts] << @account_cache[account_name]
+      else
+        @account_cache[account.name] ||= account
+        @payload[:accounts] << account
+      end
     end
     self
   end
