@@ -154,12 +154,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
     elsif QUIT_COMMANDS.include?(method)
       return nil
     elsif JOB_SUBCOMMANDS.include?(method)
-      parts =
-        if parts.length > 1 && JOB_COMMANDS.include?(parts[1])
-          ['job'] + [parts[0]] + parts[2..-1]
-        else
-          ['job'] + parts
-        end
+      parts = ['job'] + parts
       method = 'job'
     elsif ACCOUNT_SUBCOMMANDS.include?(method)
       parts = ['account'] + parts
@@ -183,6 +178,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
   def job(*args)
     process_job_command(nil, *args)
   rescue UnknownOption => e
+    # Subcommand not known? Assume it is an inactive job ID
     jobid = args.first
     job = user.inactive_jobs.find { |j| j.id == jobid }
     return render('job' => job.to_h.stringify_keys) if job
@@ -192,6 +188,12 @@ class JobConsole < ClusterHelper::BaseReportProgram
 
   def process_job_command(jobs, *args)
     subcommand = args.first
+    if subcommand && JOB_COMMANDS.include?(subcommand.downcase)
+      # e.g., strip out unneccessary 'job'
+      args = args[1..-1]
+      args = [] if args.nil?
+      subcommand = args.first
+    end
 
     if INACTIVE_STATE_SUBCOMMANDS.include?(subcommand)
       return process_inactive_job_command(jobs, *args)
@@ -223,7 +225,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
     subcommand = args.first
 
     if jobs.nil?
-      jobs = user.inactive_jobs
+      jobs = ClusterHelper::InactiveJob.user(user).all
     else
       job = jobs.first
       jobs = user.inactive_jobs if job.nil? || job.active?
@@ -269,8 +271,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
     end
 
     if JOB_COMMANDS.include?(subcommand.downcase)
-      # TODO: try to make this handle multiple accounts
-      jobs = ClusterHelper::ActiveJob.where(account: accounts.first)
+      jobs = ClusterHelper::ActiveJob.account(accounts).all
       return process_job_command(jobs, *args[1..-1])
     end
 

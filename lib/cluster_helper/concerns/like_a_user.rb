@@ -2,15 +2,15 @@ require 'json'
 
 module LikeAUser
   def accounts
-    @accounts ||= ClusterHelper::Account.where(user: self)
+    @accounts ||= ClusterHelper::Account.user(self)
   end
 
   def active_jobs
-    @jobs ||= ClusterHelper::ActiveJob.where(user: self)
+    @jobs ||= ClusterHelper::ActiveJob.user(self).all
   end
 
   def inactive_jobs
-    @inactive_jobs ||= ClusterHelper::InactiveJob.where(user: self)
+    @inactive_jobs ||= ClusterHelper::InactiveJob.user(self).all
   end
 
   def reload

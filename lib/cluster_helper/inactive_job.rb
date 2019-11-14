@@ -1,85 +1,25 @@
 class ClusterHelper::InactiveJob < ClusterHelper::Job
 
-  SACCT_FIELDS = {
-    id: 'JobID',
-    user: 'User',
-    account: 'Account',
-    name: 'JobName',
-    state: 'State',
-    submit_time: 'Submit',
-    start_time: 'Start',
-    end_time: 'End',
-    memory_requested_bytes: 'REQMEM',
-    maximum_memory_used_bytes: 'MaxRSS',
-    exit_code: 'ExitCode',
-    total_cpu_time_used_seconds: 'TotalCPU',
-    walltime_seconds: 'Elapsed',
-    allocated_cpus: 'AllocCPUS',
-    number_of_nodes: 'NNodes',
-    number_of_tasks: 'NTasks'
-  }.freeze
+  DEFAULT_DAYS_AGO = 30
 
-  USER_JOBS_COMMAND = ('sacct -u %<user>s -P -n '\
-                       '-S %<after>s --format ' +
-                       SACCT_FIELDS.values.join(',')).freeze
-  ACCOUNT_JOBS_COMMAND = ('sacct -A %<account>s -P -n '\
-                          '-S %<after>s --format' +
-                          SACCT_FIELDS.values.join(',')).freeze
+  FIELDS = ClusterHelper::InactiveJobQuery::SACCT_FIELDS.keys
 
-  attr_reader(*SACCT_FIELDS.keys)
+  attr_reader(*FIELDS)
   attr_reader :memory_efficiency, :cpu_efficiency
   attr_reader :core_walltime_seconds
 
   alias number_of_cpus allocated_cpus
 
   class << self
+    [:user, :username, :account, :account_name].each do |method|
+      define_method(method) do |*args|
+        ClusterHelper::InactiveJobQuery.new.send(method, *args)
+      end
+    end
 
     def slurm_fields
-      @slurm_fields ||= SACCT_FIELDS.keys
+      @slurm_fields ||= FIELDS
     end
-
-    private
-
-    def user_jobs_command(options = {})
-      days_ago = options[:days_ago] || 30
-      after = (Date.today - days_ago).to_s
-      format(USER_JOBS_COMMAND, options.merge(after: after))
-    end
-
-    def account_jobs_command(options = {})
-      days_ago = options[:days_ago] || 30
-      after = (Date.today - days_ago).to_s
-      format(ACCOUNT_JOBS_COMMAND, options.merge(after: after))
-    end
-
-    def lines_to_jobs(lines, user_cache, account_cache)
-      steps_by_id = {}
-      jobs_by_id = {}
-
-      lines.each do |line|
-        hash = line_to_hash(line)
-        if hash_is_job?(hash)
-          job = hash_to_job(hash, user_cache, account_cache)
-          jobs_by_id[job.id] = job
-        else
-          id = hash[:id].gsub(/\..*$/, '')
-          steps_by_id[id] ||= []
-          steps_by_id[id] << hash
-        end
-      end
-
-      steps_by_id.each do |id, steps|
-        job = jobs_by_id[id]
-        job.add_steps(steps) if job
-      end
-
-      jobs_by_id.values
-    end
-
-    def hash_is_job?(hash)
-      hash[:id] !~ /\./
-    end
-
   end
 
   def add_steps(steps)
