@@ -22,11 +22,11 @@ class ClusterHelper::InactiveJobQuery < ClusterHelper::JobQuery
   }.freeze
 
   QUERY_COMMAND = ('sacct %<users_flag>s %<accounts_flag>s -P -n '\
-                   '%<after_flag>s %<before_flag>s --format ' +
+                   '%<start_flag>s %<end_flag>s --format ' +
                    SACCT_FIELDS.values.join(',')).freeze
 
-  AFTER_FLAG = '-S %<after>s'
-  BEFORE_FLAG = '-E %<before>s'
+  START_FLAG = '-S %<start_date>s'
+  END_FLAG = '-E %<end_date>s'
 
   def initialize
     super
@@ -35,26 +35,39 @@ class ClusterHelper::InactiveJobQuery < ClusterHelper::JobQuery
     @after = nil
   end
 
-  def before_days_ago(before = nil)
-    @payload[:before_days_ago] = before
+  def start_date(date = nil)
+    @payload[:start_date] = date
     self
   end
 
-  def after_days_ago(after = nil)
-    @payload[:after_days_ago] = after
+  def end_date(date = nil)
+    @payload[:end_date] = date
     self
   end
 
-  def after_flag
-    days_ago = @payload[:after_days_ago] || DEFAULT_DAYS_AGO
-    after = (Date.today - days_ago).to_s
-    format(AFTER_FLAG, after: after)
+  def start_days_ago(days_ago = nil)
+    @payload[:start_date] = days_ago_to_date(days_ago)
+    self
   end
 
-  def before_flag
-    return '' unless @payload[:before_days_ago]
-    before = (Date.today - @payload[:before_days_ago]).to_s
-    format(BEFORE_FLAG, before: before)
+  def end_days_ago(days_ago = nil)
+    @payload[:end_date] = days_ago_to_date(days_ago)
+    self
+  end
+
+  def days_ago_to_date(days_ago = nil)
+    return nil if days_ago.nil?
+    (Date.today - days_ago).to_s
+  end
+
+  def start_flag
+    start_date = @payload[:start_date] || days_ago_to_date(DEFAULT_DAYS_AGO)
+    format(START_FLAG, start_date: start_date)
+  end
+
+  def end_flag
+    return '' unless @payload[:end_date]
+    format(END_FLAG, end_date: @payload[:end_date])
   end
 
   def query_command
@@ -62,8 +75,8 @@ class ClusterHelper::InactiveJobQuery < ClusterHelper::JobQuery
     @query_command = format(QUERY_COMMAND,
                             users_flag: users_flag,
                             accounts_flag: accounts_flag,
-                            before_flag: before_flag,
-                            after_flag: after_flag)
+                            start_flag: start_flag,
+                            end_flag: end_flag)
   end
 
   def slurm_fields
