@@ -6,6 +6,10 @@ require 'readline'
 
 class JobConsole < ClusterHelper::BaseReportProgram
 
+  class UnknownCommand < StandardError; end
+  class UnknownAccount < StandardError; end
+  class UnknownJob < StandardError; end
+
   ACCOUNT_COMMANDS = ['account', 'accounts', 'a'].freeze
   JOB_COMMANDS = ['job', 'jobs', 'j'].freeze
   RELOAD_COMMANDS = ['reload', 'r'].freeze
@@ -120,11 +124,15 @@ class JobConsole < ClusterHelper::BaseReportProgram
           bnd.eval command
         end
       rescue UnknownOption => e
-        puts "Bad option #{e.message} (type 'help' for assistance)"
+        puts "Unknown option: #{e.message} (type 'help' for assistance)"
       rescue ClusterHelper::BaseReportProgram::UnknownFormat => e
-        puts "Bad format #{e.message} (type 'help' for assistance)"
-      rescue NameError => e
-        puts "Bad command #{e.message} (type 'help' for assistance)"
+        puts "Unknown format: #{e.message} (type 'help' for assistance)"
+      rescue UnknownCommand => e
+        puts "Unknown command: #{e.message} (type 'help' for assistance)"
+      rescue UnknownAccount => e
+        puts "Unknown account: #{e.message} (type 'help' for assistance)"
+      rescue UnknownJob => e
+        puts "Unknown job: #{e.message} (type 'help' for assistance)"
       rescue StandardError => e
         puts "Error (#{e.class}) (type 'help' for assistance)"
       end
@@ -166,7 +174,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
       parts = ['format'] + parts
       method = 'use_format'
     else
-      raise NameError, method
+      raise UnknownCommand, method
     end
 
     args = parts[1..-1].map { |value| "'#{value}'" }
@@ -186,7 +194,13 @@ class JobConsole < ClusterHelper::BaseReportProgram
     jobid = args.first
     job = user.inactive_jobs.find { |j| j.id == jobid }
     return render('job' => job.to_h.stringify_keys) if job
-    raise e
+    raise UnknownJob, jobid
+  end
+
+  def fetch_active_jobs
+    query = ClusterHelper::ActiveJob.user(user)
+    query = query.account(accounts) if accounts
+    self.jobs = query.all
   end
 
   def process_job_command(*args)
@@ -202,7 +216,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
       return process_inactive_job_command(*args)
     end
 
-    self.jobs ||= user.active_jobs
+    fetch_active_jobs unless jobs
 
     if SHOW_ALL_SUBCOMMANDS.include?(subcommand)
       return render('jobs' => jobs.map { |job| job.to_h.stringify_keys })
@@ -221,17 +235,23 @@ class JobConsole < ClusterHelper::BaseReportProgram
 
     job = jobs.find { |j| j.id == subcommand }
     return render('job' => job.to_h.stringify_keys) if job
-    raise UnknownOption, subcommand
+    raise UnknownJob, subcommand
+  end
+
+  def fetch_inactive_jobs
+    query = ClusterHelper::InactiveJob.user(user)
+    query = query.account(accounts) if accounts
+    self.jobs = query.all
   end
 
   def process_inactive_job_command(*args)
     subcommand = args.first
 
     if jobs.nil?
-      self.jobs = ClusterHelper::InactiveJob.user(user).all
+      fetch_inactive_jobs
     else
       job = jobs.first
-      self.jobs = user.inactive_jobs if job.nil? || job.active?
+      fetch_inactive_jobs if job.nil? || job.active?
     end
     self.jobs = jobs.select(&:completed?) if subcommand == 'completed'
 
@@ -251,7 +271,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
 
   def reset_jobs_accounts
     self.jobs = nil
-    self.accounts = user.accounts
+    self.accounts = nil
   end
 
   def account_command(*args)
@@ -260,7 +280,6 @@ class JobConsole < ClusterHelper::BaseReportProgram
   end
 
   def process_account_command(*args)
-    puts "wha" if accounts.nil?
     self.accounts ||= user.accounts
 
     subcommand = args.first
@@ -281,15 +300,20 @@ class JobConsole < ClusterHelper::BaseReportProgram
                     end)
     end
 
+    if INACTIVE_STATE_SUBCOMMANDS.include?(subcommand.downcase)
+      jobs = ClusterHelper::InactiveJob.account(accounts).all
+      return process_inactive_job_command(*args[1..-1])
+    end
+
     if JOB_COMMANDS.include?(subcommand.downcase)
       jobs = ClusterHelper::ActiveJob.account(accounts).all
       return process_job_command(*args[1..-1])
     end
 
     self.accounts = accounts.select { |j| j.name.start_with?(subcommand) }
-    return process_account_command(*args[1..-1]) if accounts
+    return process_account_command(*args[1..-1]) if accounts.any?
 
-    raise UnknownOption
+    raise UnknownAccount, subcommand
   end
 
   def switch_user(username = nil)
