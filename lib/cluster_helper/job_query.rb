@@ -135,7 +135,8 @@ class ClusterHelper::JobQuery
            :end_time].include?(key)
       value = to_datetime(value)
     elsif [:walltime_seconds,
-           :total_cpu_time_used_seconds].include?(key)
+           :total_cpu_time_used_seconds,
+           :walltime_requested_seconds].include?(key)
       value = time_to_seconds(value)
     end
 

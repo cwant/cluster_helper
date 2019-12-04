@@ -11,7 +11,8 @@ class ClusterHelper::ActiveJobQuery < ClusterHelper::JobQuery
     start_time: '%S',
     memory_requested_bytes: '%m',
     number_of_cpus: '%C',
-    number_of_nodes: '%D'
+    number_of_nodes: '%D',
+    walltime_requested_seconds: '%l'
   }.freeze
 
   QUERY_COMMAND = ("squeue -o '" +
