@@ -46,6 +46,10 @@ class ClusterHelper::Job
     time_readable(time_in_queue_seconds)
   end
 
+  def walltime_requested
+    time_readable(walltime_requested_seconds)
+  end
+
   def format_events(key, value)
     if [:submit_time,
         :start_time,
@@ -98,7 +102,8 @@ class ClusterHelper::Job
   def request_to_h
     methods_to_h([:number_of_nodes,
                   :number_of_cpus,
-                  :memory_requested_megabytes])
+                  :memory_requested_megabytes,
+                  :walltime_requested])
   end
 
 end
