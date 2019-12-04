@@ -62,6 +62,12 @@ class ClusterHelper::BaseReportProgram
     end
   end
 
+  def options_debug(opts)
+    opts.on('-d', '--debug', 'For debugging') do |v|
+      @options[:debug] = true
+    end
+  end
+
   def process_options
     @options = { format: self.class.default_format }
 

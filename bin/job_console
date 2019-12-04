@@ -47,9 +47,13 @@ class JobConsole < ClusterHelper::BaseReportProgram
 
   ACCOUNT_SUBCOMMANDS = (NAME_SUBCOMMANDS +
                          MEMBER_SUBCOMMANDS).freeze
+
+  STATS_SUBCOMMANDS = ['stats', 'stat', 'st', 'analytics'].freeze
+
   JOB_SUBCOMMANDS = (SHOW_ALL_SUBCOMMANDS +
                      STATE_SUBCOMMANDS +
-                     COUNT_SUBCOMMANDS).freeze
+                     COUNT_SUBCOMMANDS +
+                     STATS_SUBCOMMANDS).freeze
   FORMAT_SUBCOMMANDS = ['json', 'yaml', 'compact_json'].freeze
 
   SUBCOMMANDS = (ACCOUNT_SUBCOMMANDS +
@@ -57,12 +61,13 @@ class JobConsole < ClusterHelper::BaseReportProgram
                  FORMAT_SUBCOMMANDS).freeze
 
   AUTOCOMPLETE = (COMMANDS + SUBCOMMANDS)
-                 .select { |c| c && c.length > 1 }.uniq.freeze
+                 .select { |c| c && c.length > 2 }.uniq.freeze
 
   config_option :user
   config_option :json
   config_option :compact_json
   config_option :yaml
+  config_option :debug
 
   config_option :command
 
@@ -80,18 +85,20 @@ class JobConsole < ClusterHelper::BaseReportProgram
   end
 
   def print_help
-    puts 'Some things to try:'
+    puts 'Some things to try (and try mixing):'
     puts '  jobs'
     puts '  jobs count'
     puts '  job 1112222333'
     puts '  jobs running (or pending, inactive, completed, etc)'
     puts '  jobs inactive (anything not pending or running)'
-    puts '  jobs inactive count'
+    puts '  jobs inactive stats'
     puts '  start_date 2001-01-01 (configure job search range)'
     puts '  end_date 2001-12-31'
     puts '  accounts'
     puts '  account members'
     puts '  account def-howdy (or just match start of account name)'
+    puts '  account def-howdy jobs'
+    puts '  account def jobs running'
     puts '  format json (default format yaml)'
     puts '  help'
     puts 'Press Ctrl-D to exit.'
@@ -146,6 +153,8 @@ class JobConsole < ClusterHelper::BaseReportProgram
         puts "Unknown job: #{e.message} (type 'help' for assistance)"
       rescue StandardError => e
         puts "Error (#{e.class}) (type 'help' for assistance)"
+        puts e.message if @options[:debug]
+        puts e.backtrace if @options[:debug]
       end
     end
     puts ''
@@ -237,6 +246,10 @@ class JobConsole < ClusterHelper::BaseReportProgram
       return render('jobs' => jobs.map { |job| job.to_h.stringify_keys })
     end
 
+    if STATS_SUBCOMMANDS.include?(subcommand)
+      return perform_job_stats(*args)
+    end
+
     return render(count: jobs.count) if subcommand == 'count'
 
     if ACTIVE_STATE_SUBCOMMANDS.include?(subcommand)
@@ -284,6 +297,20 @@ class JobConsole < ClusterHelper::BaseReportProgram
       self.jobs = jobs.select(&:pending?)
     end
     process_job_command(*args[1..-1])
+  end
+
+  def perform_job_stats(*args)
+    stats = { 'job_count' => jobs.count }
+    return(render('stats' => stats)) if jobs.empty?
+
+    state_histogram = {}
+    jobs.each do |job|
+      state_histogram[job.state] ||= 0
+      state_histogram[job.state] += 1
+    end
+    stats['state_histogram'] = state_histogram
+
+    render('stats' => stats)
   end
 
   def reset_jobs_accounts
