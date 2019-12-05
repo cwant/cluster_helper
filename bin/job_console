@@ -300,17 +300,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
   end
 
   def perform_job_stats(*args)
-    stats = { 'job_count' => jobs.count }
-    return(render('stats' => stats)) if jobs.empty?
-
-    state_histogram = {}
-    jobs.each do |job|
-      state_histogram[job.state] ||= 0
-      state_histogram[job.state] += 1
-    end
-    stats['state_histogram'] = state_histogram
-
-    render('stats' => stats)
+    render('stats' => ClusterHelper::JobStatistics.new(jobs, args: args).to_h)
   end
 
   def reset_jobs_accounts
