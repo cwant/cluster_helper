@@ -26,8 +26,8 @@ class ClusterHelper::InactiveJobQuery < ClusterHelper::JobQuery
                    '%<start_flag>s %<end_flag>s --format ' +
                    SACCT_FIELDS.values.join(',')).freeze
 
-  START_FLAG = '-S %<start_date>s'
-  END_FLAG = '-E %<end_date>s'
+  START_FLAG = '-S %<start_date>s'.freeze
+  END_FLAG = '-E %<end_date>s'.freeze
 
   def initialize
     super

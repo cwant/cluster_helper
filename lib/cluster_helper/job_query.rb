@@ -6,8 +6,8 @@ class ClusterHelper::JobQuery
 
   include MethodsToH
 
-  USERS_FLAG = '-u %<users>s'
-  ACCOUNTS_FLAG = '-A %<accounts>s'
+  USERS_FLAG = '-u %<users>s'.freeze
+  ACCOUNTS_FLAG = '-A %<accounts>s'.freeze
 
   def initialize(payload = nil)
     @payload = init_payload(payload)
@@ -15,7 +15,7 @@ class ClusterHelper::JobQuery
     @account_cache = {}
     @errors = []
 
-    @query_command
+    @query_command = nil
     @all = nil
   end
 

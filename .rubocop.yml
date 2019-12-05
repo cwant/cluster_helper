@@ -17,7 +17,7 @@ Style/ClassAndModuleChildren:
   Enabled: false
 
 Metrics/ClassLength:
-  Max: 250
+  Max: 300
 
 Metrics/MethodLength:
   Max: 40
