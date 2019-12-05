@@ -181,9 +181,9 @@ class JobConsole < ClusterHelper::BaseReportProgram
     elsif USER_COMMANDS.include?(method)
       method = 'switch_user'
     elsif START_DATE_COMMANDS.include?(method)
-      method = 'set_start_date'
+      method = 'handle_start_date'
     elsif END_DATE_COMMANDS.include?(method)
-      method = 'set_end_date'
+      method = 'handle_end_date'
     elsif SETTINGS_COMMANDS.include?(method)
       method = 'settings'
     elsif QUIT_COMMANDS.include?(method)
@@ -213,7 +213,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
   def job_command(*args)
     reset_jobs_accounts
     process_job_command(*args)
-  rescue UnknownOption => e
+  rescue UnknownOption
     # Subcommand not known? Assume it is an inactive job ID
     jobid = args.first
     job = user.inactive_jobs.find { |j| j.id == jobid }
@@ -246,9 +246,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
       return render('jobs' => jobs.map { |job| job.to_h.stringify_keys })
     end
 
-    if STATS_SUBCOMMANDS.include?(subcommand)
-      return perform_job_stats(*args)
-    end
+    return perform_job_stats(*args) if STATS_SUBCOMMANDS.include?(subcommand)
 
     return render(count: jobs.count) if subcommand == 'count'
 
@@ -257,7 +255,7 @@ class JobConsole < ClusterHelper::BaseReportProgram
     end
 
     if ACCOUNT_COMMANDS.include?(subcommand.downcase)
-      accounts = jobs.map(&:account).uniq
+      self.accounts = jobs.map(&:account).uniq
       return process_account_command(*args[1..-1])
     end
 
@@ -335,12 +333,12 @@ class JobConsole < ClusterHelper::BaseReportProgram
     end
 
     if INACTIVE_STATE_SUBCOMMANDS.include?(subcommand.downcase)
-      jobs = ClusterHelper::InactiveJob.account(accounts).all
+      self.jobs = ClusterHelper::InactiveJob.account(accounts).all
       return process_inactive_job_command(*args[1..-1])
     end
 
     if JOB_COMMANDS.include?(subcommand.downcase)
-      jobs = ClusterHelper::ActiveJob.account(accounts).all
+      self.jobs = ClusterHelper::ActiveJob.account(accounts).all
       return process_job_command(*args[1..-1])
     end
 
@@ -358,19 +356,17 @@ class JobConsole < ClusterHelper::BaseReportProgram
     @user.reload
   end
 
-  def set_start_date(*args)
+  def handle_start_date(*args)
     self.start_date = get_date(*args)
   end
 
-  def set_end_date(*args)
+  def handle_end_date(*args)
     self.end_date = get_date(*args)
   end
 
   def get_date(*args)
     return nil unless args.first
-    if args.first.downcase == 'date'
-      return args[1..-1].first
-    end
+    return args[1..-1].first if args.first.downcase == 'date'
     args.first
   end
 end

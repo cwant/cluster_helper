@@ -1,6 +1,6 @@
 class ClusterHelper::ActiveJob < ClusterHelper::Job
 
-  FIELDS = ClusterHelper::ActiveJobQuery::SQUEUE_FIELDS.keys  
+  FIELDS = ClusterHelper::ActiveJobQuery::SQUEUE_FIELDS.keys
 
   attr_reader(*FIELDS)
 

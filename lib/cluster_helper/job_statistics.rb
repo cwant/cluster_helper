@@ -1,6 +1,6 @@
 class ClusterHelper::JobStatistics
   STATS = [:job_count,
-           :state_histogram]
+           :state_histogram].freeze
 
   def initialize(jobs, args)
     @jobs = jobs
@@ -13,7 +13,7 @@ class ClusterHelper::JobStatistics
   end
 
   def job_count
-    return @jobs.count
+    @jobs.count
   end
 
   def state_histogram
@@ -30,7 +30,7 @@ class ClusterHelper::JobStatistics
     init_stats
     STATS.each do |stat|
       data = send(stat)
-      @stats[stat.to_s] = data if data 
+      @stats[stat.to_s] = data if data
     end
   end
 
