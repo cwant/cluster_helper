@@ -1,0 +1,2 @@
+module ClusterHelper::JobConsole
+end
