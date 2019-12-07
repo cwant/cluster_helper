@@ -9,8 +9,10 @@ Gem::Specification.new do |spec|
   spec.email = ['cjwant@ualberta.ca']
 
   spec.summary = 'Making a cluster easier to use'
-  spec.files = []
+  spec.files = Dir.glob('lib/**/*.rb') + Dir.glob('bin/*')
   spec.require_paths = ['lib']
+  spec.bindir = 'bin'
+  spec.executables = ['job_console']
 
   spec.required_ruby_version = '>= 2.0.0'
 
