@@ -1,6 +1,6 @@
-module ClusterHelper::JobConsole::AccountCommands
-  include ClusterHelper::JobConsole::Exceptions
-  include ClusterHelper::JobConsole::Constants
+module JobConsole::AccountCommands
+  include JobConsole::Exceptions
+  include JobConsole::Constants
 
   def process_account_command(*args)
     self.accounts ||= user.accounts

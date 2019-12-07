@@ -1,6 +1,6 @@
-module ClusterHelper::JobConsole::JobCommands
-  include ClusterHelper::JobConsole::Exceptions
-  include ClusterHelper::JobConsole::Constants
+module JobConsole::JobCommands
+  include JobConsole::Exceptions
+  include JobConsole::Constants
 
   def fetch_active_jobs
     query = ClusterHelper::ActiveJob.user(user)

@@ -1,6 +1,6 @@
-module ClusterHelper::JobConsole::Input
-  include ClusterHelper::JobConsole::Exceptions
-  include ClusterHelper::JobConsole::Constants
+module JobConsole::Input
+  include JobConsole::Exceptions
+  include JobConsole::Constants
 
   def input_to_commands(input)
     input.strip.split(';').map { |i| sanitize_input(i) }
