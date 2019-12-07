@@ -1,4 +1,4 @@
-module ClusterHelper::JobConsole::Constants
+module JobConsole::Constants
   ACCOUNT_COMMANDS = ['account', 'accounts', 'a'].freeze
   JOB_COMMANDS = ['job', 'jobs', 'j'].freeze
   RELOAD_COMMANDS = ['reload', 'r'].freeze

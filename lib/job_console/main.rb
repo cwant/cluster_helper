@@ -1,14 +1,14 @@
 #!/usr/bin/env ruby
 
-require_relative '../monkey_patch/hash_stringify_keys'
+require_relative '../cluster_helper/monkey_patch/hash_stringify_keys'
 require 'readline'
 
-class ClusterHelper::JobConsole::Main < ClusterHelper::BaseReportProgram
-  include ClusterHelper::JobConsole::Exceptions
-  include ClusterHelper::JobConsole::Constants
-  include ClusterHelper::JobConsole::Input
-  include ClusterHelper::JobConsole::JobCommands
-  include ClusterHelper::JobConsole::AccountCommands
+class JobConsole::Main < ClusterHelper::BaseReportProgram
+  include JobConsole::Exceptions
+  include JobConsole::Constants
+  include JobConsole::Input
+  include JobConsole::JobCommands
+  include JobConsole::AccountCommands
 
   config_option :user
   config_option :json

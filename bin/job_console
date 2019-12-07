@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
 
-require_relative '../lib/cluster_helper'
+require_relative '../lib/job_console'
 
-ClusterHelper::JobConsole::Main.new.run if $PROGRAM_NAME == __FILE__
+JobConsole::Main.new.run if $PROGRAM_NAME == __FILE__
