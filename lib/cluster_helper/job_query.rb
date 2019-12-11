@@ -75,6 +75,10 @@ class ClusterHelper::JobQuery
     if @payload[:users].any?
       users = @payload[:users].map(&:username).join(',')
       format(USERS_FLAG, users: users)
+    elsif @payload[:accounts].any?
+      users = @payload[:accounts].map(&:members).flatten.
+                map(&:username).uniq.join(',')
+      format(USERS_FLAG, users: users)
     else
       ''
     end

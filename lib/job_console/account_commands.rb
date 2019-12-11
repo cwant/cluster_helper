@@ -25,12 +25,12 @@ module JobConsole::AccountCommands
 
     if INACTIVE_STATE_SUBCOMMANDS.include?(subcommand.downcase)
       self.jobs = ClusterHelper::InactiveJob.account(accounts).all
-      return process_inactive_job_command(*args[1..-1])
+      return process_inactive_job_command(*args)
     end
 
     if JOB_COMMANDS.include?(subcommand.downcase)
       self.jobs = ClusterHelper::ActiveJob.account(accounts).all
-      return process_job_command(*args[1..-1])
+      return process_job_command(*args)
     end
 
     self.accounts = accounts.select { |j| j.name.start_with?(subcommand) }
