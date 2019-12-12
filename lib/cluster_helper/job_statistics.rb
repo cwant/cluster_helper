@@ -11,7 +11,8 @@ class ClusterHelper::JobStatistics
       'users' => :user_histogram,
       'accounts' => :account_histogram
     }.freeze,
-    'waiting_in_queue' => :waiting_in_queue
+    'waiting_in_queue' => :waiting_in_queue,
+    'running_time' => :running_time
   }.freeze
 
   def initialize(jobs, args)
@@ -83,6 +84,23 @@ class ClusterHelper::JobStatistics
     average_time_seconds = total_waiting_time_seconds / total_jobs
     { 'job_count' => total_jobs,
       'total_time' => time_readable(total_waiting_time_seconds),
+      'mean_time' => time_readable(average_time_seconds) }
+  end
+
+  def running_time
+    total_walltime_seconds = 0
+    total_jobs = 0
+    @jobs.each do |job|
+      walltime_seconds = job.walltime_seconds
+      if walltime_seconds
+        total_walltime_seconds += walltime_seconds
+        total_jobs += 1
+      end
+    end
+    return nil if total_jobs == 0
+    average_time_seconds = total_walltime_seconds / total_jobs
+    { 'job_count' => total_jobs,
+      'total_time' => time_readable(total_walltime_seconds),
       'mean_time' => time_readable(average_time_seconds) }
   end
 
