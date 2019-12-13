@@ -28,6 +28,12 @@ class ClusterHelper::Job
     state == 'COMPLETED'
   end
 
+  def ran?
+    # Only assume job ran if nodes were assigned
+    return false if nodes.nil? || nodes.empty?
+    true
+  end
+
   def initialize(options = {})
     allowed_options = self.class.slurm_fields + [:user]
     options.each do |key, value|

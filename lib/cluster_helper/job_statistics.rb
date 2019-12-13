@@ -91,6 +91,7 @@ class ClusterHelper::JobStatistics
     total_walltime_seconds = 0
     total_jobs = 0
     @jobs.each do |job|
+      next unless job.ran?
       walltime_seconds = job.walltime_seconds
       if walltime_seconds
         total_walltime_seconds += walltime_seconds

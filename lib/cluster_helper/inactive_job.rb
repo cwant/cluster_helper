@@ -44,27 +44,33 @@ class ClusterHelper::InactiveJob < ClusterHelper::Job
   end
 
   def maximum_memory_used_megabytes
+    return nil unless ran?
     (maximum_memory_used_bytes / 1024.0**2).round(3)
   end
 
   def total_cpu_time_used
+    return nil unless ran?
     time_readable(total_cpu_time_used_seconds)
   end
 
   def walltime
+    return nil unless ran?
     time_readable(walltime_seconds)
   end
 
   def core_walltime
+    return nil unless ran?
     time_readable(core_walltime_seconds)
   end
 
   def cpu_efficiency_percent
+    return nil unless ran?
     return nil unless cpu_efficiency
     (100.0 * cpu_efficiency).round(3)
   end
 
   def memory_efficiency_percent
+    return nil unless ran?
     return nil unless memory_efficiency
     (100.0 * memory_efficiency).round(3)
   end
@@ -76,8 +82,11 @@ class ClusterHelper::InactiveJob < ClusterHelper::Job
 
     out[:request] = request_to_h
     out[:events] = events_to_h
-    out[:memory] = memory_to_h
-    out[:cpu] = cpu_to_h
+    if ran?
+      out[:memory] = memory_to_h
+      out[:cpu] = cpu_to_h
+      out[:nodes] = nodes
+    end
 
     out
   end

@@ -19,7 +19,8 @@ class ClusterHelper::InactiveJobQuery < ClusterHelper::JobQuery
     allocated_cpus: 'AllocCPUS',
     number_of_nodes: 'NNodes',
     number_of_tasks: 'NTasks',
-    walltime_requested_seconds: 'TimeLimit'
+    walltime_requested_seconds: 'TimeLimit',
+    nodes: 'NodeList'
   }.freeze
 
   QUERY_COMMAND = ('sacct %<users_flag>s %<accounts_flag>s -P -n '\

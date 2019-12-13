@@ -142,9 +142,29 @@ class ClusterHelper::JobQuery
            :total_cpu_time_used_seconds,
            :walltime_requested_seconds].include?(key)
       value = time_to_seconds(value)
+    elsif key == :nodes
+      value = parse_node_list(value)
     end
 
     value
+  end
+
+  def parse_node_list(str)
+    return nil if str.nil? or str.empty?
+    return nil if str == "None assigned"
+    if str.include?(',')
+      if str.include?('[')
+        m = str.match(/(^.*)\[(.*)\]/)
+        return nil unless m
+        prefix = m[1]
+        suffixes = m[2].split(',')
+        suffixes.map { |suffix| prefix + suffix }
+      else
+        str.split(',')
+      end
+    else
+      [str]
+    end
   end
 
   def memory_to_bytes(str)
@@ -162,6 +182,7 @@ class ClusterHelper::JobQuery
   end
 
   def time_to_seconds(str)
+    return nil if str.nil? or str.empty?
     parts = str.split('.')
     str = parts[0]
     milli_str = parts.length > 1 ? parts[1] : nil
