@@ -6,10 +6,10 @@ class ClusterHelper::JobStatistics
 
   STATS = {
     'job_count' => :job_count,
-    'histograms' => {
-      'states' => :state_histogram,
-      'users' => :user_histogram,
-      'accounts' => :account_histogram
+    'frequencies' => {
+      'states' => :state_frequency,
+      'users' => :user_frequency,
+      'accounts' => :account_frequency
     }.freeze,
     'waiting_in_queue' => :waiting_in_queue,
     'running_time' => :running_time
@@ -29,18 +29,18 @@ class ClusterHelper::JobStatistics
     @jobs.count
   end
 
-  def state_histogram
-    generic_histogram('state', &:state)
+  def state_frequency
+    generic_frequency('state', &:state)
   end
 
-  def user_histogram
-    generic_histogram('username') do |job|
+  def user_frequency
+    generic_frequency('username') do |job|
       job.user.username
     end
   end
 
-  def account_histogram
-    generic_histogram('account') do |job|
+  def account_frequency
+    generic_frequency('account') do |job|
       job.account.name
     end
   end
@@ -107,16 +107,16 @@ class ClusterHelper::JobStatistics
 
   private
 
-  def generic_histogram(key_name)
+  def generic_frequency(key_name)
     return if @jobs.empty?
-    histogram = {}
+    frequency = {}
     @jobs.each do |job|
       key = yield(job)
-      histogram[key] ||= 0
-      histogram[key] += 1
+      frequency[key] ||= 0
+      frequency[key] += 1
     end
-    return nil if histogram.empty?
-    histogram.collect do |key, value|
+    return nil if frequency.empty?
+    frequency.collect do |key, value|
       { key_name => key,
         'job_count' => value }
     end
