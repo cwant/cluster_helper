@@ -61,6 +61,7 @@ class JobConsole::Main < ClusterHelper::BaseReportProgram
 
   def single_command(input)
     bnd = binding()
+    @input = input
     input_to_commands(input).each do |command|
       break unless command
       bnd.eval command
@@ -72,7 +73,11 @@ class JobConsole::Main < ClusterHelper::BaseReportProgram
             format: format }
     out[:start_date] = start_date if start_date
     out[:end_date] = end_date if end_date
-    render(settings: out)
+    out
+  end
+
+  def handle_settings
+    render(settings: settings)
   end
 
   def command_loop
@@ -83,6 +88,7 @@ class JobConsole::Main < ClusterHelper::BaseReportProgram
 
     bnd = binding()
     while (input = Readline.readline(prompt, true))
+      @input = input
       begin
         input_to_commands(input).each do |command|
           return nil unless command
@@ -155,7 +161,11 @@ class JobConsole::Main < ClusterHelper::BaseReportProgram
   end
 
   def perform_job_stats(*args)
-    render('stats' => ClusterHelper::JobStatistics.new(jobs, args: args).to_h)
+    metadata = { excecuted_at: Time.now,
+                 settings: settings,
+                 input: @input }
+    render('stats' => ClusterHelper::JobStatistics.new(jobs).to_h,
+           'metadata' => metadata.stringify_keys)
   end
 
 end

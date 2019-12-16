@@ -27,7 +27,7 @@ module JobConsole::Input
     elsif END_DATE_COMMANDS.include?(method)
       method = 'handle_end_date'
     elsif SETTINGS_COMMANDS.include?(method)
-      method = 'settings'
+      method = 'handle_settings'
     elsif QUIT_COMMANDS.include?(method)
       return nil
     elsif JOB_SUBCOMMANDS.include?(method)

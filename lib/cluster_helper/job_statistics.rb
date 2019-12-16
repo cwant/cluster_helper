@@ -6,16 +6,16 @@ class ClusterHelper::JobStatistics
 
   STATS = {
     'job_count' => :job_count,
+    'time_in_queue' => :waiting_in_queue,
+    'running_time' => :running_time,
     'frequencies' => {
       'states' => :state_frequency,
       'users' => :user_frequency,
       'accounts' => :account_frequency
-    }.freeze,
-    'waiting_in_queue' => :waiting_in_queue,
-    'running_time' => :running_time
+    }.freeze
   }.freeze
 
-  def initialize(jobs, args)
+  def initialize(jobs, args = {})
     @jobs = jobs
     @args = args
     @stats = nil
