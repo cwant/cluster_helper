@@ -119,7 +119,7 @@ class ClusterHelper::JobStatistics
     frequency.collect do |key, value|
       { key_name => key,
         'job_count' => value }
-    end
+    end.sort_by { |value| value['job_count'] }.reverse
   end
 
 end
