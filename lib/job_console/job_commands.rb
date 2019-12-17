@@ -3,7 +3,8 @@ module JobConsole::JobCommands
   include JobConsole::Constants
 
   def fetch_active_jobs
-    query = ClusterHelper::ActiveJob.user(user)
+    query = ClusterHelper::ActiveJob
+    query = query.user(user) unless accounts
     query = query.account(accounts) if accounts
     self.jobs = query.all
   end
@@ -46,7 +47,8 @@ module JobConsole::JobCommands
   end
 
   def fetch_inactive_jobs
-    query = ClusterHelper::InactiveJob.user(user)
+    query = ClusterHelper::InactiveJob
+    query = query.user(user) unless accounts
     query = query.account(accounts) if accounts
     query = query.end_date(end_date) if end_date
     query = query.start_date(start_date) if start_date

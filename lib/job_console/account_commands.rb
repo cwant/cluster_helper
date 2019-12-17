@@ -1,6 +1,7 @@
 module JobConsole::AccountCommands
   include JobConsole::Exceptions
   include JobConsole::Constants
+  include JobConsole::JobCommands
 
   def process_account_command(*args)
     self.accounts ||= user.accounts
@@ -24,12 +25,12 @@ module JobConsole::AccountCommands
     end
 
     if INACTIVE_STATE_SUBCOMMANDS.include?(subcommand.downcase)
-      self.jobs = ClusterHelper::InactiveJob.account(accounts).all
+      self.jobs = fetch_inactive_jobs
       return process_inactive_job_command(*args)
     end
 
     if JOB_COMMANDS.include?(subcommand.downcase)
-      self.jobs = ClusterHelper::ActiveJob.account(accounts).all
+      self.jobs = fetch_active_jobs
       return process_job_command(*args)
     end
 
