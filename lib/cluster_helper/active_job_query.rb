@@ -10,6 +10,7 @@ class ClusterHelper::ActiveJobQuery < ClusterHelper::JobQuery
     submit_time: '%V',
     start_time: '%S',
     memory_requested_bytes: '%m',
+    walltime_seconds: '%M',
     number_of_cpus: '%C',
     number_of_nodes: '%D',
     walltime_requested_seconds: '%l',

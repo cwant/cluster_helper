@@ -29,8 +29,8 @@ class ClusterHelper::InactiveJob < ClusterHelper::Job
     total_cpu_seconds = 0
     @number_of_tasks = 0
     steps.each do |step|
-      total_cpu_seconds += step[:total_cpu_time_used_seconds]
-      bytes_used = step[:maximum_memory_used_bytes]
+      total_cpu_seconds += step[:total_cpu_time_used_seconds] || 0
+      bytes_used = step[:maximum_memory_used_bytes] || 0
       if bytes_used > max_memory_bytes
         max_memory_bytes = bytes_used
         @number_of_tasks = step[:number_of_tasks]
@@ -38,9 +38,17 @@ class ClusterHelper::InactiveJob < ClusterHelper::Job
     end
     max_memory_bytes *= @number_of_tasks
     @maximum_memory_used_bytes = max_memory_bytes
-    @memory_efficiency = max_memory_bytes.to_f / memory_requested_bytes
+    @memory_efficiency = if memory_requested_bytes > 0
+                           max_memory_bytes.to_f / memory_requested_bytes
+                         else
+                           0
+                         end
     @core_walltime_seconds = walltime_seconds * allocated_cpus
-    @cpu_efficiency = total_cpu_seconds.to_f / @core_walltime_seconds
+    @cpu_efficiency = if @core_walltime_seconds > 0
+                        total_cpu_seconds.to_f / @core_walltime_seconds
+                      else
+                        0
+                      end
   end
 
   def maximum_memory_used_megabytes
