@@ -116,10 +116,11 @@ class ClusterHelper::JobStatistics
       frequency[key] += 1
     end
     return nil if frequency.empty?
-    frequency.collect do |key, value|
+    unsorted = frequency.collect do |key, value|
       { key_name => key,
         'job_count' => value }
-    end.sort_by { |value| value['job_count'] }.reverse
+    end
+    unsorted.sort_by { |value| value['job_count'] }.reverse
   end
 
 end

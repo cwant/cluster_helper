@@ -76,8 +76,8 @@ class ClusterHelper::JobQuery
       users = @payload[:users].map(&:username).join(',')
       format(USERS_FLAG, users: users)
     elsif @payload[:accounts].any?
-      users = @payload[:accounts].map(&:members).flatten.
-                map(&:username).uniq.join(',')
+      users = @payload[:accounts].map(&:members).flatten
+                                 .map(&:username).uniq.join(',')
       format(USERS_FLAG, users: users)
     else
       ''
@@ -150,8 +150,8 @@ class ClusterHelper::JobQuery
   end
 
   def parse_node_list(str)
-    return nil if str.nil? or str.empty?
-    return nil if str == "None assigned"
+    return nil if str.nil? || str.empty?
+    return nil if str == 'None assigned'
     if str.include?(',')
       if str.include?('[')
         m = str.match(/(^.*)\[(.*)\]/)
@@ -182,7 +182,7 @@ class ClusterHelper::JobQuery
   end
 
   def time_to_seconds(str)
-    return nil if str.nil? or str.empty?
+    return nil if str.nil? || str.empty?
     parts = str.split('.')
     str = parts[0]
     milli_str = parts.length > 1 ? parts[1] : nil

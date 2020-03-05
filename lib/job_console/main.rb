@@ -160,7 +160,7 @@ class JobConsole::Main < ClusterHelper::BaseReportProgram
     args.first
   end
 
-  def perform_job_stats(*args)
+  def perform_job_stats(*_args)
     metadata = { excecuted_at: Time.now,
                  settings: settings,
                  input: @input }
