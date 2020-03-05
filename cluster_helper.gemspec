@@ -21,7 +21,7 @@ Gem::Specification.new do |spec|
     # Need very specific versions to work with Ruby 2.0
     spec.add_development_dependency 'parallel', '= 1.13.0'
     spec.add_development_dependency 'rubocop', '= 0.50.0'
-    spec.add_development_dependency 'rake', '= 12.3.2'
+    spec.add_development_dependency 'rake', '= 12.3.3'
   else
     spec.add_development_dependency 'rubocop'
   end
