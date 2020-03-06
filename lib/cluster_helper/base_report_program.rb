@@ -89,7 +89,12 @@ class ClusterHelper::BaseReportProgram
     main
   end
 
-  def apply_format(output)
+  def apply_format(output, comment: false)
+    if comment
+      return "# #{output}\n" if format == :yaml
+
+      return "// #{output}\n"
+    end
     format = @options[:format] || self.class.default_format
     return JSON.pretty_generate(output) if format == :json
     return output.to_json if format == :compact_json

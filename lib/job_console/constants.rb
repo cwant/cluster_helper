@@ -7,6 +7,7 @@ module JobConsole::Constants
   HELP_COMMANDS = ['help', 'h', '?'].freeze
   USER_COMMANDS = ['user', 'u'].freeze
   SETTINGS_COMMANDS = ['settings', 's'].freeze
+  WRITE_COMMANDS = ['write', 'w'].freeze
   START_DATE_COMMANDS = ['start_date', 'start', 'sd'].freeze
   END_DATE_COMMANDS = ['end_date', 'end', 'ed'].freeze
 
@@ -18,6 +19,7 @@ module JobConsole::Constants
               HELP_COMMANDS +
               SETTINGS_COMMANDS +
               USER_COMMANDS +
+              WRITE_COMMANDS +
               START_DATE_COMMANDS +
               END_DATE_COMMANDS).freeze
 

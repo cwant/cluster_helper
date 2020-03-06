@@ -22,6 +22,8 @@ class JobConsole::Main < ClusterHelper::BaseReportProgram
   attr_accessor :jobs
   attr_accessor :start_date
   attr_accessor :end_date
+  attr_accessor :last_command
+  attr_accessor :last_output
 
   private
 
@@ -47,6 +49,7 @@ class JobConsole::Main < ClusterHelper::BaseReportProgram
     puts '  account def-howdy jobs'
     puts '  account def jobs running'
     puts '  format json (default format yaml)'
+    puts '  write FILENAME (append output from most recent command to file)'
     puts '  help'
     puts 'Press Ctrl-D to exit.'
   end
@@ -89,11 +92,13 @@ class JobConsole::Main < ClusterHelper::BaseReportProgram
     bnd = binding()
     while (input = Readline.readline(prompt, true))
       @input = input
+      @rendered = false
       begin
         input_to_commands(input).each do |command|
           return nil unless command
           bnd.eval command
         end
+        @last_command = input if @rendered
       rescue UnknownOption => e
         puts "Unknown option: #{e.message} (type 'help' for assistance)"
       rescue ClusterHelper::BaseReportProgram::UnknownFormat => e
@@ -142,6 +147,24 @@ class JobConsole::Main < ClusterHelper::BaseReportProgram
     @user = ClusterHelper::User.new(username || @options[:user])
   end
 
+  def write_output(filename = nil)
+    raise NoFilename unless filename
+    raise NoOutput unless last_output && last_command
+
+    File.open(filename, 'a') do |file|
+      file.write(apply_format("Most recent command: #{last_command}",
+                              comment: true))
+      file.write(apply_format(last_output))
+    end
+    puts "Wrote most recent output to #{filename}"
+  rescue NoFilename
+    puts 'A filename must be provided'
+  rescue NoOutput
+    puts 'No previous command or no output to write'
+  rescue Errno::ENOENT
+    puts 'Bad filename'
+  end
+
   def reload
     @user.reload
   end
@@ -166,6 +189,12 @@ class JobConsole::Main < ClusterHelper::BaseReportProgram
                  input: @input }
     render('stats' => ClusterHelper::JobStatistics.new(jobs).to_h,
            'metadata' => metadata.stringify_keys)
+  end
+
+  def render(output)
+    @last_output = output
+    super(output)
+    @rendered = true
   end
 
 end

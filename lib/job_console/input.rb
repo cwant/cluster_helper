@@ -22,6 +22,8 @@ module JobConsole::Input
       method = 'use_format'
     elsif USER_COMMANDS.include?(method)
       method = 'switch_user'
+    elsif WRITE_COMMANDS.include?(method)
+      method = 'write_output'
     elsif START_DATE_COMMANDS.include?(method)
       method = 'handle_start_date'
     elsif END_DATE_COMMANDS.include?(method)
