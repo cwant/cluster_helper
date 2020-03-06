@@ -6,7 +6,8 @@ class ClusterHelper::InactiveJob < ClusterHelper::Job
 
   attr_reader(*FIELDS)
   attr_reader :memory_efficiency, :cpu_efficiency
-  attr_reader :core_walltime_seconds
+  attr_reader :core_walltime_seconds, :total_cpu_seconds
+  attr_reader :max_memory_bytes
 
   alias number_of_cpus allocated_cpus
 
@@ -25,27 +26,27 @@ class ClusterHelper::InactiveJob < ClusterHelper::Job
   def add_steps(steps)
     @memory_efficiency_percent = nil
     @cpu_efficiency_percent = nil
-    max_memory_bytes = 0
-    total_cpu_seconds = 0
+    @max_memory_bytes = 0
+    @total_cpu_seconds = 0
     @number_of_tasks = 0
     steps.each do |step|
-      total_cpu_seconds += step[:total_cpu_time_used_seconds] || 0
+      @total_cpu_seconds += step[:total_cpu_time_used_seconds] || 0
       bytes_used = step[:maximum_memory_used_bytes] || 0
       if bytes_used > max_memory_bytes
-        max_memory_bytes = bytes_used
+        @max_memory_bytes = bytes_used
         @number_of_tasks = step[:number_of_tasks]
       end
     end
-    max_memory_bytes *= @number_of_tasks
+    @max_memory_bytes *= @number_of_tasks
     @maximum_memory_used_bytes = max_memory_bytes
     @memory_efficiency = if memory_requested_bytes > 0
-                           max_memory_bytes.to_f / memory_requested_bytes
+                           @max_memory_bytes.to_f / memory_requested_bytes
                          else
                            0
                          end
     @core_walltime_seconds = walltime_seconds * allocated_cpus
     @cpu_efficiency = if @core_walltime_seconds > 0
-                        total_cpu_seconds.to_f / @core_walltime_seconds
+                        @total_cpu_seconds.to_f / @core_walltime_seconds
                       else
                         0
                       end

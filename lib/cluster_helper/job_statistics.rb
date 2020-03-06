@@ -12,7 +12,8 @@ class ClusterHelper::JobStatistics
       'states' => :state_frequency,
       'users' => :user_frequency,
       'accounts' => :account_frequency
-    }.freeze
+    }.freeze,
+    'efficiency' => :efficiency
   }.freeze
 
   def initialize(jobs, args = {})
@@ -121,6 +122,39 @@ class ClusterHelper::JobStatistics
         'job_count' => value }
     end
     unsorted.sort_by { |value| value['job_count'] }.reverse
+  end
+
+  def efficiency
+    return if @jobs.empty?
+
+    total_cpu_seconds = 0
+    total_walltime_seconds = 0
+    total_max_memory_bytes = 0
+    total_memory_requested_bytes = 0
+    total_jobs = 0
+    @jobs.each do |job|
+      next unless job.ran?
+      next unless job.core_walltime_seconds > 0
+      next unless job.memory_requested_bytes > 0
+
+      total_jobs += 1
+      total_walltime_seconds += job.core_walltime_seconds
+      total_cpu_seconds += job.total_cpu_seconds
+      total_memory_requested_bytes += job.memory_requested_bytes
+      total_max_memory_bytes += job.max_memory_bytes
+    end
+    return if total_jobs == 0
+
+    cpu_efficiency = total_cpu_seconds.to_f / total_walltime_seconds
+    cpu_efficiency_percent = (100.0 * cpu_efficiency).round(3)
+    memory_efficiency =
+      total_max_memory_bytes.to_f / total_memory_requested_bytes
+    memory_efficiency_percent = (100.0 * memory_efficiency).round(3)
+    {
+      'job_count' => total_jobs,
+      'mean_cpu_efficiency_percent' => cpu_efficiency_percent,
+      'mean_memory_efficiency_percent' => memory_efficiency_percent
+    }
   end
 
 end
