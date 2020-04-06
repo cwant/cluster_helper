@@ -111,8 +111,6 @@ class ClusterHelper::JobStatistics
     average_walltime_seconds = total_walltime_seconds / total_jobs
     average_core_walltime_seconds = total_core_walltime_seconds / total_jobs
 
-    puts start_date
-    puts end_date
     if start_date && end_date
       time_period_seconds = end_date - start_date
       average_cores_in_use = total_core_walltime_seconds / time_period_seconds
