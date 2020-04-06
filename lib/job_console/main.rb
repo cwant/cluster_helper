@@ -2,6 +2,7 @@
 
 require_relative '../cluster_helper/monkey_patch/hash_stringify_keys'
 require 'readline'
+require 'date'
 
 class JobConsole::Main < ClusterHelper::BaseReportProgram
   include JobConsole::Exceptions
@@ -187,7 +188,14 @@ class JobConsole::Main < ClusterHelper::BaseReportProgram
     metadata = { excecuted_at: Time.now,
                  settings: settings,
                  input: @input }
-    render('stats' => ClusterHelper::JobStatistics.new(jobs).to_h,
+    if jobs.first && jobs.first.inactive?
+      today = Date.today
+      time_span = { start_date: start_date || (today - 30).to_time,
+                    end_date: end_date || today.to_time }
+    else
+      time_span = {}
+    end
+    render('stats' => ClusterHelper::JobStatistics.new(jobs, time_span).to_h,
            'metadata' => metadata.stringify_keys)
   end
 

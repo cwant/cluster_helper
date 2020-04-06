@@ -16,10 +16,15 @@ class ClusterHelper::JobStatistics
     'efficiency' => :efficiency
   }.freeze
 
+  attr_accessor :start_date
+  attr_accessor :end_date
+
   def initialize(jobs, args = {})
     @jobs = jobs
     @args = args
     @stats = nil
+    @start_date = args[:start_date]
+    @end_date = args[:end_date]
   end
 
   def init_stats
@@ -85,25 +90,52 @@ class ClusterHelper::JobStatistics
     average_time_seconds = total_waiting_time_seconds / total_jobs
     { 'job_count' => total_jobs,
       'total_time' => time_readable(total_waiting_time_seconds),
-      'mean_time' => time_readable(average_time_seconds) }
+      'mean_time_per_job' => time_readable(average_time_seconds) }
   end
 
   def running_time
     total_walltime_seconds = 0
+    total_core_walltime_seconds = 0
     total_jobs = 0
     @jobs.each do |job|
       next unless job.ran?
+
       walltime_seconds = job.walltime_seconds
-      if walltime_seconds
-        total_walltime_seconds += walltime_seconds
-        total_jobs += 1
-      end
+      next unless walltime_seconds
+
+      total_walltime_seconds += walltime_seconds
+      total_core_walltime_seconds += job.core_walltime_seconds
+      total_jobs += 1
     end
     return nil if total_jobs == 0
-    average_time_seconds = total_walltime_seconds / total_jobs
-    { 'job_count' => total_jobs,
-      'total_time' => time_readable(total_walltime_seconds),
-      'mean_time' => time_readable(average_time_seconds) }
+    average_walltime_seconds = total_walltime_seconds / total_jobs
+    average_core_walltime_seconds = total_core_walltime_seconds / total_jobs
+
+    puts start_date
+    puts end_date
+    if start_date && end_date
+      time_period_seconds = end_date - start_date
+      average_cores_in_use = total_core_walltime_seconds / time_period_seconds
+    end
+
+    out = {
+      'job_count' => total_jobs,
+      'walltime' => {
+        'total_time' => time_readable(total_walltime_seconds),
+        'mean_time_per_job' => time_readable(average_walltime_seconds)
+      },
+      'core_walltime' => {
+        'total_time' => time_readable(total_core_walltime_seconds),
+        'mean_time_per_job' => time_readable(average_core_walltime_seconds)
+      }
+    }
+    if average_cores_in_use
+      out['average_cores_in_use'] = {
+        'time_period' => time_readable(time_period_seconds),
+        'average_cores_in_use' => average_cores_in_use.round(2)
+      }
+    end
+    out
   end
 
   private
